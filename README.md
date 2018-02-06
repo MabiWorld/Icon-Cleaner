@@ -10,5 +10,6 @@ Live demo [here](https://mabi.world/icon/)
 * Ability to select pixels that should be preserved (but that would otherwise be erased.)
 * Image uploader and paste image URL options.
 * GIF support with image uploader (easy to figure out icon in this form!)
+* Direct upload to MWW
 * Better readme
 
