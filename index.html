@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<meta http-equiv="X-UA-Compatible" content="ie=edge">
+	<title>Mabinogi World - Inventory icon cleaner</title>
+
+	<link rel="stylesheet" type="text/css" href="index.css">
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+	<script type="text/javascript" src="cleaner.js"></script>
+</head>
+<body>
+	<h1>Inventory Icon Cleaner</h1>
+	<div class="canvases block">
+		<table><tr valign="middle">
+			<td><canvas id="cleaner" width="150" height="150"></canvas></td>
+			<td class="arrow">→</td>
+			<td><canvas id="cleaned" width="150" height="150"></canvas></td>
+		</tr></table>
+	</div>
+	<div class="show-corrections">Make corrections...</div>
+	<div style="display: none" class="corrections block">
+		<center><table class="positions">
+			<tr>
+				<td>Top-left:</td>
+				<td><input type="number" id="left" title="Left (x)"/></td>
+				<td><input type="number" id="top" title="Top (y)"/></td>
+			</tr>
+			<tr>
+				<td>Bottom-right:</td>
+				<td><input type="number" id="right" title="Right (x)"/></td>
+				<td><input type="number" id="bottom" title="Bottom (y)"/></td>
+			</tr>
+		</table></center>
+		<div class="colors">
+			<span class="color"><span class="name">Grid</span> <span id="grid-color" class="selection"></span></span>
+			<span class="color"><span class="name">Corner</span> <span id="corner-color" class="selection normal"></span></span>
+			<span class="color"><span class="name">Box</span> <span id="box-color" class="selection normal"></span></span>
+			<span class="color"><span class="name">Shadow</span> <span id="shadow-color" class="selection normal"></span></span>
+			<span class="color"><span class="name">Inner</span> <span id="inner-color" class="selection normal"></span></span>
+		</div>
+		<div style="display: none" id="color-selector"></div>
+	</div>
+	<p>Please use an opaque interface! It will probably not work otherwise.</p>
+	<div class="left block">
+		<ol>
+			<li>Use a screenshot tool that will copy a selection of the screen to the clipboard.</li>
+			<li>Take a screenshot of the icon. It doesn't have to be carefully taken, make sure the whole icon is there!</li>
+			<li>Paste the screenshot into this page with Ctrl+V</li>
+			<!--<li>Select the relevant inventory slots if needed.</li>-->
+		</ol>
+	</div>
+</body>
+</html>

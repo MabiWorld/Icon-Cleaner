@@ -1,0 +1,55 @@
+html, body {
+	width: 100%;
+	height: 100%;
+}
+
+body {
+	text-align: center;
+}
+
+canvas {
+	border: 1px dashed gray;
+}
+
+.block {
+	display: inline-block;
+}
+
+.left {
+	text-align: left;
+}
+
+.show-corrections {
+	cursor: pointer;
+	text-decoration: underline;
+}
+
+.positions input {
+	width: 3em;
+}
+
+.colors {
+	display: flex;
+	flex-wrap: wrap;
+}
+
+.color {
+	white-space: nowrap;
+	margin-right: 15px;
+}
+
+.selection {
+	display: inline-block;
+	width: 20px;
+	height: 20px;
+
+	vertical-align: bottom;
+
+	border: 1px dashed gray;
+}
+
+#color-selector {
+	position: absolute;
+
+	max-width: 110px;
+}
