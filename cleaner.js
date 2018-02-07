@@ -267,8 +267,9 @@ function CLIPBOARD_CLASS(rawCanvas, finalCanvas) {
 						positions[p] = [x, y + 1];
 					}
 					else if (score == best) {
-						if (p=this.hasPixel(p, bestGridPixels)) {
-							++bestGridPixels[p];
+						var np;
+						if (np=this.hasPixel(p, bestGridPixels)) {
+							++bestGridPixels[np];
 						}
 						else {
 							bestGridPixels[p] = 1;
@@ -345,11 +346,7 @@ function CLIPBOARD_CLASS(rawCanvas, finalCanvas) {
 		[0, 23, 24, 1],
 	];
 	
-	var innerRects = [
-		[2, 2, 20, 1],
-		[2, 3, 1, 18], [21, 3, 1, 18],
-		[2, 21, 20, 1],
-	]
+	var innerRect = [[2, 2, 20, 20]];
 
 	this.preCrop = function () {
 		var pos = this.findGrid();
@@ -430,10 +427,39 @@ function CLIPBOARD_CLASS(rawCanvas, finalCanvas) {
 
 		this.saveColor("#grid-color", gridColor);
 		this.profileRectsAndSave("#corner-color", cornerRects, totals);
-		this.profileRectsAndSave("#box-color", boxRects, totals);
-		this.profileRectsAndSave("#shadow-color", shadowRects, totals);
+		var boxColor = this.profileRectsAndSave("#box-color", boxRects, totals);
+		var shadowColor = this.profileRectsAndSave("#shadow-color", shadowRects, totals);
 
-		// TODO: Find inner colour.
+		boxColor = getColorAsHex(boxColor);
+		shadowColor = getColorAsHex(shadowColor);
+
+		// Find inner colour.
+		var profile = this.profileRects(innerRect);
+		var minBoxDiff = 9001, minBoxColor, minShadowDiff = 9001, minShadowColor;
+		for (let color in profile) {
+			var hex = getColorAsHex(color);
+			var boxDiff = chromatism.difference(hex, boxColor);
+			var shadowDiff = chromatism.difference(hex, shadowColor);
+			
+			if (boxDiff < minBoxDiff) {
+				minBoxDiff = boxDiff;
+				minBoxColor = color;
+			}
+
+			if (shadowDiff < minShadowDiff) {
+				minShadowDiff = shadowDiff;
+				minShadowColor = color;
+			}
+		}
+		minBoxColor = parseInt(minBoxColor)
+		minShadowColor = parseInt(minShadowColor)
+
+		if (minBoxColor != minShadowColor) {
+			console.log("Colors with minimum distance from box and shadow colors are different!",
+				"Box's:", getColorAsHex(minBoxColor), "Shadow's:", getColorAsHex(minShadowColor));
+		}
+
+		this.saveColor("#inner-color", minBoxColor);
 
 		this.cleanIcon();
 	}
@@ -445,7 +471,7 @@ function CLIPBOARD_CLASS(rawCanvas, finalCanvas) {
 		this.hideRectsIf(cornerRects, $("#corner-color").data("best"));
 		this.hideRectsIf(boxRects, $("#box-color").data("best"));
 		this.hideRectsIf(shadowRects, $("#shadow-color").data("best"));
-		this.hideRectsIf([[2, 2, 20, 20]], $("#inner-color").data("best"));
+		this.hideRectsIf(innerRect, $("#inner-color").data("best"));
 	}
 
 
@@ -511,7 +537,9 @@ function CLIPBOARD_CLASS(rawCanvas, finalCanvas) {
 			}
 		}
 
-		this.saveColor(selector, parseInt(bestColor), others);
+		bestColor = parseInt(bestColor);
+		this.saveColor(selector, bestColor, others);
+		return bestColor;
 	}
 
 	this.saveColor = function (selector, bestColor, others) {
@@ -526,7 +554,7 @@ function CLIPBOARD_CLASS(rawCanvas, finalCanvas) {
 }
 
 function getColorAsHex(color) {
-	return "#" + ("00000" + color.toString(16)).substr(-6);
+	return "#" + ("00000" + parseInt(color).toString(16)).substr(-6);
 }
 
 // From https://stackoverflow.com/a/20452240/734170
