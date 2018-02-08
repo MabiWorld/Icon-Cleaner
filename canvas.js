@@ -12,144 +12,272 @@ function CANVAS(selector) {
 		return;
 	}
 
-	var canvas = $canvas[0];
-	var context = this.context = canvas.getContext("2d");
+	this.canvas = $canvas[0];
+	this.context = this.canvas.getContext("2d");
 
-	var initialWidth = canvas.width;
-	var initialHeight = canvas.height;
+	this.initialWidth = this.canvas.width;
+	this.initialHeight = this.canvas.height;
 
-	var image, cropSource;
+	this.image = null;
+	this.cropSource = null;
+}
 
-	this.width = function (width) {
-		if (typeof width == "undefined") {
-			return canvas.width;
+PUBLIC(CANVAS, "width", function (width) {
+	if (typeof width == "undefined") {
+		return this.canvas.width;
+	}
+
+	this.canvas.width = width;
+});
+
+PUBLIC(CANVAS, "height", function (height) {
+	if (typeof height == "undefined") {
+		return this.canvas.height;
+	}
+
+	this.canvas.height = height;
+});
+
+//draw pasted image to canvas
+PUBLIC(CANVAS, "create", function (source) {
+	var pastedImage = this.image = new Image();
+	var self = this;
+	pastedImage.onload = function () {
+		//resize
+		self.canvas.width = pastedImage.width;
+		self.canvas.height = pastedImage.height;
+
+		self.context.drawImage(pastedImage, 0, 0);
+	};
+	pastedImage.src = source;
+});
+
+PUBLIC(CANVAS, "crop", function (source) {
+	this.cropSource = source;
+	this.redraw();
+});
+
+PUBLIC(CANVAS, "redraw", function () {
+	if (this.image) {
+		this.context.drawImage(image, 0, 0);
+	}
+	else if (this.cropSource) {
+		var left = parseInt($("#left").val());
+		var top = parseInt($("#top").val());
+		var right = parseInt($("#right").val());
+		var bottom = parseInt($("#bottom").val());
+
+		if (isNaN(left) || isNaN(top)
+		|| isNaN(right) || isNaN(bottom)) {
+			this.canvas.width = initialWidth;
+			this.canvas.height = initialHeight;
+			this.context.clearRect();
+			console.log("Tried to render a crop without all coordinates discovered.");
 		}
 
-		canvas.width = width;
-	}
+		var width = right - left + 1;
+		var height = bottom - top + 1;
 
-	this.height = function (height) {
-		if (typeof height == "undefined") {
-			return canvas.height;
+		var data = this.cropSource.context.getImageData(left, top, width, height);
+
+		this.canvas.width = width;
+		this.canvas.height = height;
+		this.context.putImageData(data, 0, 0);
+	}
+});
+
+PUBLIC(CANVAS, "search", function (patterns, tolerance, left, top, width, height) {
+	// patterns = [pattern, ...]
+	// pattern = [
+	//     [x0, x1, x2] // y = 0
+	//     [x0, x1, x2] // y = 1
+	// ]
+	// x# = color as int, a string as a variable name, or such a string with a ! for negation.
+	tolerance = tolerance || 1;
+	left = left || 0;
+	top = top || 0;
+	width = width || this.canvas.width;
+	height = height || this.canvas.height;
+	var bound = 4 * width;
+
+	// Convert bin to something easier to manage and use == on.
+	var rawPixels = this.context.getImageData(left, top, width, height).data, pixels = [], row;
+	for (let p = 0; p < rawPixels.length; p += 4) {
+		var color = (rawPixels[p] << 16) + (rawPixels[p + 1] << 8) + rawPixels[p + 2];
+
+		if (p % bound == 0) {
+			row = [];
+			pixels.push(row);
 		}
 
-		canvas.height = height;
+		row.push(color);
 	}
 
-	//draw pasted image to canvas
-	this.create = function (source) {
-		var pastedImage = image = new Image();
-		pastedImage.onload = function () {
-			//resize
-			canvas.width = pastedImage.width;
-			canvas.height = pastedImage.height;
-
-			context.drawImage(pastedImage, 0, 0);
-		};
-		pastedImage.src = source;
+	// Copy patterns.
+	var remaining = {};
+	for (let i = patterns.length - 1; i >= 0; --i) {
+		remaining[i] = patterns[i];
 	}
 
-	this.crop = function (source) {
-		cropSource = source;
-		this.redraw();
+	// Scan for the patterns...
+	var results = new Array(patterns.length);
+	for (let i = patterns.length - 1; i >= 0; --i) {
+		results[i] = [];
 	}
 
-	this.redraw = function () {
-		if (image) {
-			context.drawImage(image, 0, 0);
-		}
-		else if (cropSource) {
-			var left = parseInt($("#left").val());
-			var top = parseInt($("#top").val());
-			var right = parseInt($("#right").val());
-			var bottom = parseInt($("#bottom").val());
+	for (let y = 0; y < height; ++y) {
+		for (let x = 0; x < width; ++x) {
+			for (let i in remaining) {
+				var pattern = remaining[i], matched = true, vars = {}, notVars = {};
+				
+				for (let py = pattern.length - 1; py >= 0; --py) {
+					var pRow = pattern[py];
+					var row = pixels[y + py];
 
-			if (isNaN(left) || isNaN(top)
-			|| isNaN(right) || isNaN(bottom)) {
-				canvas.width = initialWidth;
-				canvas.height = initialHeight;
-				context.clearRect();
-				console.log("Tried to render a crop without all coordinates discovered.");
-			}
+					// Remove this pattern if we're too low.
+					if (row == undefined) {
+						delete remaining[i];
+						continue;
+					}
 
-			var width = right - left + 1;
-			var height = bottom - top + 1;
+					for (let px = pRow.length - 1; px >= 0; --px) {
+						var p = pRow[px];
+						var c = row[x + px];
 
-			var data = cropSource.context.getImageData(left, top, width, height);
+						if (c == undefined) {
+							// Too far to the right.
 
-			canvas.width = width;
-			canvas.height = height;
-			context.putImageData(data, 0, 0);
-		}
-	}
+							matched = false;
+							break;
+						}
 
-	this.profile = function (x, y, width, height, data) {
-		x = x || 0;
-		y = y || 0;
-		width = width || canvas.width;
-		height = height || canvas.height;
-		data = data || new COLORBIN();
+						if (typeof p == "string") {
+							// Variable.
+							if (p[0] == "!") {
+								// Negation of variable.
+								p = p.substr(1);
+								if (p in vars) {
+									if (COLORBIN.isPixel(c, vars[p], tolerance)) {
+										// If it's the same color as previously determined for this var.
+										matched = false;
+										break;
+									}
+								}
+								else {
+									notVars[p] = c;
+								}
+							}
+							else {
+								if (p in vars) {
+									if (!COLORBIN.isPixel(c, vars[p], tolerance)) {
+										// If it's not the same color as previously determined for this var.
+										matched = false;
+										break;
+									}
+								}
+								else if (p in notVars) {
+									if (COLORBIN.isPixel(c, notVars[p], tolerance)) {
+										// If it's the color we determined it shouldn't be.
+										matched = false;
+										break;
+									}
 
-		var pixels = context.getImageData(x, y, width, height).data;
-		for (var p = 0; p < pixels.length; p += 4) {
-			var color = (pixels[p] << 16) + (pixels[p + 1] << 8) + pixels[p + 2], cc;
-
-			if ((cc = data.hasPixel(color)) != null) {
-				++data[cc];
-			}
-			else {
-				data[color] = 1;
-			}
-		}
-
-		return data;
-	}
-
-	this.profileRects = function (rects) {
-		var data = new COLORBIN();
-		for (var y = 0; y < canvas.height; y += 24) {
-			for (var x = 0; x < canvas.width; x += 24) {
-				for (let rect of rects) {
-					this.profile(x + rect[0], y + rect[1], rect[2], rect[3], data);
-				}
-			}
-		}
-
-		return data;
-	}
-
-	this.hideRectsIf = function (rects, erase) {
-		for (var y = 0; y < canvas.height; y += 24) {
-			for (var x = 0; x < canvas.width; x += 24) {
-				for (let rect of rects) {
-					var destX = x + rect[0], destY = y + rect[1];
-					var width = rect[2], height = rect[3];
-					var pixels = context.getImageData(destX, destY, width, height);
-					var data = pixels.data;
-
-					for (var p = 0; p < data.length; p += 4) {
-						var color = (data[p] << 16) + (data[p + 1] << 8) + data[p + 2];
-
-						if (COLORBIN.isPixel(color, erase)) {
-							data[p + 3] = 0;
+									vars[p] = c;
+								}
+								else {
+									notVars[p] = c;
+								}
+							}
+						}
+						else if (!COLORBIN.isPixel(c, p, tolerance)) {
+							// If not same literal color.
+							matched = false;
+							break;
 						}
 					}
 
-					context.putImageData(pixels, destX, destY);
+					if (!matched) break;
+				}
+
+				if (matched) {
+					// Found this pattern at this point.
+					results[parseInt(i)].push({
+						"pos": [x, y],
+						"vars": vars,
+					});
 				}
 			}
 		}
 	}
 
-	this.getPixel = function (x, y) {
-		// Need to compare with == so ...
-		var p = context.getImageData(x, y, 1, 1).data;
-		return (p[0] << 16) + (p[1] << 8) + p[2];
+	this.pixels = pixels;
+	return results;
+});
+
+PUBLIC(CANVAS, "profile", function (x, y, width, height, data) {
+	x = x || 0;
+	y = y || 0;
+	width = width || this.canvas.width;
+	height = height || this.canvas.height;
+	data = data || new COLORBIN();
+
+	var pixels = this.context.getImageData(x, y, width, height).data;
+	for (var p = 0; p < pixels.length; p += 4) {
+		var color = (pixels[p] << 16) + (pixels[p + 1] << 8) + pixels[p + 2], cc;
+
+		if ((cc = data.hasPixel(color)) != null) {
+			++data[cc];
+		}
+		else {
+			data[color] = 1;
+		}
 	}
 
-	this.isPixel = function (x, y, pixel, tolerance) {
-		return COLORBIN.isPixel(this.getPixel(x, y), pixel, tolerance);
-	}
-}
+	return data;
+});
 
-Object
+PUBLIC(CANVAS, "profileRects", function (rects) {
+	var data = new COLORBIN();
+	for (var y = 0; y < this.canvas.height; y += 24) {
+		for (var x = 0; x < this.canvas.width; x += 24) {
+			for (let rect of rects) {
+				this.profile(x + rect[0], y + rect[1], rect[2], rect[3], data);
+			}
+		}
+	}
+
+	return data;
+});
+
+PUBLIC(CANVAS, "hideRectsIf", function (rects, erase) {
+	for (var y = 0; y < this.canvas.height; y += 24) {
+		for (var x = 0; x < this.canvas.width; x += 24) {
+			for (let rect of rects) {
+				var destX = x + rect[0], destY = y + rect[1];
+				var width = rect[2], height = rect[3];
+				var pixels = this.context.getImageData(destX, destY, width, height);
+				var data = pixels.data;
+
+				for (var p = 0; p < data.length; p += 4) {
+					var color = (data[p] << 16) + (data[p + 1] << 8) + data[p + 2];
+
+					if (COLORBIN.isPixel(color, erase)) {
+						data[p + 3] = 0;
+					}
+				}
+
+				this.context.putImageData(pixels, destX, destY);
+			}
+		}
+	}
+});
+
+PUBLIC(CANVAS, "getPixel", function (x, y) {
+	// Need to compare with == so ...
+	var p = this.context.getImageData(x, y, 1, 1).data;
+	return (p[0] << 16) + (p[1] << 8) + p[2];
+});
+
+PUBLIC(CANVAS, "isPixel", function (x, y, pixel, tolerance) {
+	return COLORBIN.isPixel(this.getPixel(x, y), pixel, tolerance);
+});

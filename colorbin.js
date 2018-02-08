@@ -11,7 +11,7 @@ var COLORBIN = function (base) {
 	}
 }
 
-COLORBIN.prototype.hasPixel = function (color, tolerance) {
+PUBLIC(COLORBIN, "hasPixel", function (color, tolerance) {
 	if (color in this) return color;
 
 	tolerance = tolerance || 1;
@@ -30,9 +30,9 @@ COLORBIN.prototype.hasPixel = function (color, tolerance) {
 	}
 
 	return null;
-}
+});
 
-COLORBIN.isPixel = function(color, pixel, tolerance) {
+STATIC(COLORBIN, "isPixel", function(color, pixel, tolerance) {
 	if (color == pixel) return true;
 
 	tolerance = tolerance || 1;
@@ -51,4 +51,4 @@ COLORBIN.isPixel = function(color, pixel, tolerance) {
 	}
 
 	return false;
-}
+});

@@ -13,4 +13,3 @@ Live demo [here](https://mabi.world/icon/)
 * GIF support with image uploader (easy to figure out icon in this form!)
 * Direct upload to MWW
 * Better readme
-

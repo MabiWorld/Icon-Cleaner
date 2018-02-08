@@ -121,126 +121,176 @@ function CLIPBOARD_CLASS(rawCanvas, finalCanvas) {
 	};
 
 	this.findGrid = function () {
-		// Looking for 1 pixel thick lines of the same colour in a grid pattern.
-		// It's possible for there to be pixels overlapping the grid, though!
+		var searches = rawCanvas.search([
+			// Upper-left inside corner of inventory pane.
+			[
+				["x", "x", "x",  "x"],
+				["x", "x", "x",  "x"],
+				["x", "x", "!x", "!x"],
+				["x", "x", "!x", "!x"],
+			],
+			// Upper inside piece of inventory pane.
+			[
+				["x", "x", "x",],
+				["x", "x", "x",],
+				["!x", "x", "!x"],
+			],
+			// Left inside piece of inventory pane.
+			[
+				["x", "x", "!x",],
+				["x", "x", "x",],
+				["x", "x", "!x"],
+			],
+			// Plus shaped, between four cells.
+			[
+				["!x", "x", "!x"],
+				["x",  "x", "x"],
+				["!x", "x", "!x"],
+			],
+		], 2);
 
-		// It's 25 pixels from line to line (inclusive)
-		// thus we should find the colour we want within 25 square pixels.
-		var x, y, pixels = {}, intersection = new COLORBIN();
+		var pixels = rawCanvas.pixels;
+		var width = rawCanvas.width(), height = rawCanvas.height();
 
-		for (y = 0; y < 25; ++y) {
-			for (x = 0; x < 25; ++x) {
-				var p = rawCanvas.getPixel(x, y);
-				intersection[p] = true;
-			}
-		}
+		var grids = new COLORBIN();
+		var maxDiscovered = 0, maxColor, maxPos;
+		for (let results of searches) {
+			for (let result of results) {
+				// For each result we want to look along the axes in 24 pixel intervals.
+				var x = result.pos[0], y = result.pos[1];
+				var c = result.vars.x, cc;
 
-		for(let d of [
-			[rawCanvas.width() - 25, 0],
-			[0, rawCanvas.height() - 25],
-			[rawCanvas.width() - 25, rawCanvas.height() - 25],
-		]) {
-			var pp = new COLORBIN();
-			var xx = d[0], yy = d[1];
-			for (y = 0; y < 25; ++y) {
-				for (x = 0; x < 25; ++x) {
-					var p = rawCanvas.getPixel(xx + x, yy + y);
-					if (p=intersection.hasPixel(p)) {
-						pp[p] = true;
-					}
+				var r = {
+					"left": x,
+					"top": y,
+					"right": x,
+					"bottom": y,
+					"searches": 1,
+					"discoveries": 0,
 				}
-			}
-			
-			// Eliminate things in intersection that are not in pp.
-			for (let p in intersection) {
-				if (!pp.hasPixel(p)) {
-					delete intersection[p];
-				}
-			}
-		}
 
-		// Generally there should only be about 5~9 colours left in intersection at this point.
-		// Going to cheat here... look for somewhere on the screen that has a + shape in these colours.
-		// TODO: This may have trouble with sides of the inventory window.
-		var positions = {}, bestGridPixels = new COLORBIN(), best = 0;
-		var height = rawCanvas.height(), width = rawCanvas.width();
-		for (y = 0; y < height; ++y) {
-			for (x = 0; x < width; ++x) {
-				var p = rawCanvas.getPixel(x, y);
-				if (intersection.hasPixel(p)) {
-					var score =
-						!rawCanvas.isPixel(  x - 1, y, p, 2)
-						+ !rawCanvas.isPixel(x + 1, y, p, 2)
-						+  rawCanvas.isPixel(x - 1, y + 1, p, 2)
-						+  rawCanvas.isPixel(x,     y + 1, p, 2)
-						+  rawCanvas.isPixel(x + 1, y + 1, p, 2)
-						+ !rawCanvas.isPixel(x - 1, y + 2, p, 2)
-						+  rawCanvas.isPixel(x,     y + 2, p, 2)
-						+ !rawCanvas.isPixel(x + 1, y + 2, p, 2);
-
-					if (score > best) {
-						best = score;
-						bestGridPixels = new COLORBIN();
-						bestGridPixels[p] = 1;
-						positions = {}
-						positions[p] = [x, y + 1];
-					}
-					else if (score == best) {
-						var np;
-						if (np=bestGridPixels.hasPixel(p)) {
-							++bestGridPixels[np];
-						}
-						else {
-							bestGridPixels[p] = 1;
-							positions[p] = [x, y + 1];
+				if ((cc=grids.hasPixel(c, 2)) != null) {
+					var skip = false;
+					for (let tmp of grids[cc]) {
+						if (tmp.left % 24 == x % 24 && tmp.top % 24 == y % 24) {
+							// This has been accounted for.
+							++tmp.searches;
+							skip = true;
+							break;
 						}
 					}
+
+					if (skip) continue;
+
+					grids[c].push(r);
 				}
-			}
-		}
+				else {
+					grids[c] = [r];
+				}
 
-		best = 0;
-		var bestGridPixel;
-		for (let p in bestGridPixels) {
-			var score = bestGridPixels[p];
-			if (score > best) {
-				bestGridPixel = p
-			}
-		}
+				// Count all pixels on axes. TODO: Must also count pixels on inv edges.
+				// [Should not appear here (much)] [Sequential edge bit] [Inside edge, sequential to left, % 24 == to grid lines] [grid line ever 24px]
+				// Rotate the above semantics based on edge we're on.
 
-		// If we're far out, we want to find the upper left-most portion of the grid.
-		var position = positions[bestGridPixel];
-		if (position[0] > 24 || position[1] > 24) {
-			var x = position[0], y = position[1];
-			// TODO: If someone screenshots outside of the inv window this might be a problem.
-			if (x > 24) {
-			var tx = x + 23, ty = y > 0 ? y - 1 : y + 1;
-				while (tx > 24) {
-					tx -= 24;
-					if (rawCanvas.isPixel(tx, ty, bestGridPixel, 2)) {
-						// This pixel should not be similar unless it's at the edge.
-						break;
+				var discovered = 0;
+				for (var lx = x - 24; lx > 0; lx -= 24) {
+					var found = false;
+					for (var ly = 0; ly < height; ++ly) {
+						if (COLORBIN.isPixel(pixels[ly][lx], c)) {
+							++discovered;
+							found = true;
+						}
 					}
-				}
-				x = tx + 1;
-			}
 
-			if (y > 24) {
-				tx = x > 0 ? x - 1 : x + 1; ty = y + 23;
-				while (ty > 24) {
-					ty -= 24;
-					if (rawCanvas.isPixel(tx, ty, bestGridPixel, 2)) {
-						// This pixel should not be similar unless it's at the edge.
-						break;
+					if (!found) break;
+
+					// TODO: keep going if we don't enounter something.
+					// If we encounter more afterwards, it's suspicious
+				}
+
+				lx += 24;
+				if (lx < r.left) r.left = lx;
+
+				for (var lx = x + 24; lx < width; lx += 24) {
+					var found = false;
+					for (var ly = 0; ly < height; ++ly) {
+						if (COLORBIN.isPixel(pixels[ly][lx], c)) {
+							++discovered;
+							found = true;
+						}
 					}
-				}
-				y = ty + 1;
-			}
 
-			position = [x, y];
+					if (!found) break;
+
+					// TODO: keep going if we don't enounter something.
+					// If we encounter more afterwards, it's suspicious
+				}
+
+				lx -= 24;
+				if (lx > r.right) r.right = lx;
+				
+				for (var ly = y - 24; ly > 0; ly -= 24) {
+					var found = false;
+					var pp = pixels[ly];
+					for (var lx = 0; lx < width; ++lx) {
+						if (COLORBIN.isPixel(pp[lx], c)) {
+							++discovered;
+							found = true;
+						}
+					}
+
+					if (!found) break;
+
+					// TODO: keep going if we don't enounter something.
+					// If we encounter more afterwards, it's suspicious
+				}
+
+				ly += 24;
+				if (ly < r.top) r.top = ly;
+				
+				for (var ly = y + 24; ly < height; ly += 24) {
+					var found = false;
+					var pp = pixels[ly];
+					for (var lx = 0; lx < width; ++lx) {
+						if (COLORBIN.isPixel(pp[lx], c)) {
+							++discovered;
+							found = true;
+						}
+					}
+
+					if (!found) break;
+
+					// TODO: keep going if we don't enounter something.
+					// If we encounter more afterwards, it's suspicious
+				}
+
+				ly -= 24;
+				if (ly > r.bottom) r.bottom = ly;
+
+				r.discoveries = discovered;
+			}
 		}
 
-		return position;
+		var bestScore = 0, best, bestColor;
+		for (let c in grids) {
+			for (let gridc of grids[c]) {
+				var score = gridc.searches;
+
+				if (score > bestScore) {
+					bestScore = score;
+					best = gridc;
+					bestColor = c;
+				}
+			}
+		}
+
+		// Exclude the grid line on the left and top. Include on right and bottom.
+		$("#left").val(best.left + 2);
+		$("#top").val(best.top + 2);
+		$("#right").val(best.right + 1);
+		$("#bottom").val(best.bottom + 1);
+
+		return bestColor;
 	}
 
 
@@ -267,55 +317,8 @@ function CLIPBOARD_CLASS(rawCanvas, finalCanvas) {
 	
 	var innerRect = [[2, 2, 20, 20]];
 
-	this.preCrop = function () {
-		var pos = this.findGrid();
-		var left = pos[0], top = pos[1];
-		var gridColor = rawCanvas.getPixel(left, top);
-		
-		// We ignore everything to the left of pos[0] and above pos[1].
-		// We need to find the right-most and bottom-most grid position available.
-		var tx, ty;
-		var right, bottom;
-
-		// Find right-most bit by scanning verts at 24 pixel intervals.
-		var width = rawCanvas.width(), height = rawCanvas.height();
-		for (tx = left + 24; tx < width; tx += 24) {
-			var found = false;
-			for (ty = 0; ty < height; ++ty) {
-				if (rawCanvas.isPixel(tx, ty, gridColor)) {
-					right = tx;
-					found = true;
-					break;
-				}
-			}
-			if (!found) break;
-		}
-
-		// Find bottom-most bit by scanning horz at 24 pixel intervals.
-		for (ty = top + 24; ty < height; ty += 24) {
-			var found = false;
-			for (tx = 0; tx < width; ++tx) {
-				if (rawCanvas.isPixel(tx, ty, gridColor)) {
-					bottom = ty;
-					found = true;
-					break;
-				}
-			}
-			if (!found) break;
-		}
-
-		left += 1; top += 1;
-
-		$("#left").val(left);
-		$("#top").val(top);
-		$("#right").val(right);
-		$("#bottom").val(bottom);
-
-		return gridColor;
-	}
-
 	this.findBackground = function () {
-		var gridColor = this.preCrop();
+		var gridColor = this.findGrid();
 		finalCanvas.crop(rawCanvas);
 
 		// Besides the grid colour, there's four colours of importance.
