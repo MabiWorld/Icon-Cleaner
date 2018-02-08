@@ -45,27 +45,28 @@ $(function () {
 		}
 		else {
 			// Select any colour from image.
-			CLIPBOARD.crop();
-			var cleanCanvas = $("#cleaned")[0];
-			var cleanCtx = cleanCanvas.getContext("2d")
+			var cleanCanvas = CLIPBOARD.finalCanvas;
+			cleanCanvas.redraw();
 
-			var selCtx, selCanvas = $("<canvas>").attr({
-				"width": cleanCanvas.width * 2,
-				"height": cleanCanvas.height * 2,
+			var selCanvas, $selCanvas = $("<canvas>").attr({
+				"width": cleanCanvas.width() * 2,
+				"height": cleanCanvas.height() * 2,
 			}).click(function (e) {
 				var offset = $(this).offset();
 				var x = e.pageX - offset.left;
 				var y = e.pageY - offset.top;
 
-				var pixel = getCanvasPixel(selCtx, x, y);
+				var pixel = cleanCanvas.getPixel(x, y);
 				$this.data("best", pixel)
 					.css("background-color", getColorAsHex(pixel));
 
 				$sel.hide();
 				CLIPBOARD.cleanIcon();
-			}).appendTo($sel)[0];
+			}).appendTo($sel);
 
-			var image = cleanCtx.getImageData(0, 0, cleanCanvas.width, cleanCanvas.height)
+			selCanvas = new CANVAS($selCanvas);
+
+			var image = cleanCanvas.context.getImageData(0, 0, cleanCanvas.width(), cleanCanvas.height())
 
 			selCtx = selCanvas.getContext("2d");
 			selCtx.putImageData(scaleImageData(selCtx, image, 2), 0, 0);
@@ -89,24 +90,8 @@ $(function () {
  */
 function CLIPBOARD_CLASS(rawCanvas, finalCanvas) {
 	var _self = this;
-	var $rawCanvas = $(rawCanvas);
-	var $finalCanvas = $(finalCanvas);
-
-	if (!$rawCanvas.length || $rawCanvas[0].tagName != "CANVAS") {
-		console.error("Bad selector for raw canvas.");
-		return;
-	}
-
-	if (!$finalCanvas.length || $finalCanvas[0].tagName != "CANVAS") {
-		console.error("Bad selector for final canvas.");
-		return;
-	}
-
-	var rawCanvas = $rawCanvas[0];
-	var rawContext = rawCanvas.getContext("2d");
-
-	var finalCanvas = $finalCanvas[0];
-	var finalContext = finalCanvas.getContext("2d");
+	var rawCanvas = this.rawCanvas = new CANVAS(rawCanvas);
+	var finalCanvas = this.finalCanvas = new CANVAS(finalCanvas);
 
 	var image;
 
@@ -126,7 +111,7 @@ function CLIPBOARD_CLASS(rawCanvas, finalCanvas) {
 					var blob = items[i].getAsFile();
 					var URLObj = window.URL || window.webkitURL;
 					var source = URLObj.createObjectURL(blob);
-					this.create(source);
+					rawCanvas.create(source);
 
 					setTimeout(this.findBackground.bind(this), 100);
 				}
@@ -135,99 +120,32 @@ function CLIPBOARD_CLASS(rawCanvas, finalCanvas) {
 		}
 	};
 
-	//draw pasted image to canvas
-	this.create = function (source) {
-		var pastedImage = image = new Image();
-		pastedImage.onload = function () {
-			//resize
-			rawCanvas.width = pastedImage.width;
-			rawCanvas.height = pastedImage.height;
-
-			rawContext.drawImage(pastedImage, 0, 0);
-		};
-		pastedImage.src = source;
-	};
-
-	this.redrawImage = function () {
-		if (image) {
-			rawContext.drawImage(image, 0, 0);
-		}
-	}
-
-	this.getPixel = function (x, y) {
-		// Need to compare with == so ...
-		var p = rawContext.getImageData(x, y, 1, 1).data;
-		return (p[0] << 16) + (p[1] << 8) + p[2];
-	}
-
-	this.hasPixel = function(color, pixels, tolerance) {
-		if (color in pixels) return color;
-
-		tolerance = tolerance || 1;
-		var base = color - (tolerance << 16) - (tolerance << 8) - tolerance;
-		var bb = tolerance * 2
-		var gg = bb << 8
-		var rr = bb << 16
-		for (var r = 0; r <= rr; r += 0x010000) {
-			for (var g = 0; g <= gg; g += 0x0100) {
-				for (var b = 0; b <= bb; b += 0x01) {
-					if ((base + r + g + b) in pixels) {
-						return (base + r + g + b);
-					}
-				}
-			}
-		}
-
-		return null;
-	}
-
-	this.isPixel = function(color, pixel, tolerance) {
-		if (color == pixel) return true;
-
-		tolerance = tolerance || 1;
-		var base = color - (tolerance << 16) - (tolerance << 8) - tolerance;
-		var bb = tolerance * 2
-		var gg = bb << 8
-		var rr = bb << 16
-		for (var r = 0; r <= rr; r += 0x010000) {
-			for (var g = 0; g <= gg; g += 0x0100) {
-				for (var b = 0; b <= bb; b += 0x01) {
-					if ((base + r + g + b) == pixel) {
-						return true;
-					}
-				}
-			}
-		}
-
-		return false;
-	}
-
 	this.findGrid = function () {
 		// Looking for 1 pixel thick lines of the same colour in a grid pattern.
 		// It's possible for there to be pixels overlapping the grid, though!
 
 		// It's 25 pixels from line to line (inclusive)
 		// thus we should find the colour we want within 25 square pixels.
-		var x, y, pixels = {}, intersection = {};
+		var x, y, pixels = {}, intersection = new COLORBIN();
 
 		for (y = 0; y < 25; ++y) {
 			for (x = 0; x < 25; ++x) {
-				var p = getCanvasPixel(rawContext, x, y);
+				var p = rawCanvas.getPixel(x, y);
 				intersection[p] = true;
 			}
 		}
 
 		for(let d of [
-			[rawCanvas.width - 25, 0],
-			[0, rawCanvas.height - 25],
-			[rawCanvas.width - 25, rawCanvas.height - 25],
+			[rawCanvas.width() - 25, 0],
+			[0, rawCanvas.height() - 25],
+			[rawCanvas.width() - 25, rawCanvas.height() - 25],
 		]) {
-			var pp = {};
+			var pp = new COLORBIN();
 			var xx = d[0], yy = d[1];
 			for (y = 0; y < 25; ++y) {
 				for (x = 0; x < 25; ++x) {
-					var p = getCanvasPixel(rawContext, xx + x, yy + y);
-					if (p=this.hasPixel(p, intersection)) {
+					var p = rawCanvas.getPixel(xx + x, yy + y);
+					if (p=intersection.hasPixel(p)) {
 						pp[p] = true;
 					}
 				}
@@ -235,7 +153,7 @@ function CLIPBOARD_CLASS(rawCanvas, finalCanvas) {
 			
 			// Eliminate things in intersection that are not in pp.
 			for (let p in intersection) {
-				if (!this.hasPixel(p, pp)) {
+				if (!pp.hasPixel(p)) {
 					delete intersection[p];
 				}
 			}
@@ -244,31 +162,32 @@ function CLIPBOARD_CLASS(rawCanvas, finalCanvas) {
 		// Generally there should only be about 5~9 colours left in intersection at this point.
 		// Going to cheat here... look for somewhere on the screen that has a + shape in these colours.
 		// TODO: This may have trouble with sides of the inventory window.
-		var positions = {}, bestGridPixels = {}, best = 0;
-		for (y = 0; y < rawCanvas.height; ++y) {
-			for (x = 0; x < rawCanvas.width; ++x) {
-				var p = getCanvasPixel(rawContext, x, y);
-				if (this.hasPixel(p, intersection)) {
+		var positions = {}, bestGridPixels = new COLORBIN(), best = 0;
+		var height = rawCanvas.height(), width = rawCanvas.width();
+		for (y = 0; y < height; ++y) {
+			for (x = 0; x < width; ++x) {
+				var p = rawCanvas.getPixel(x, y);
+				if (intersection.hasPixel(p)) {
 					var score =
-						!this.isPixel(getCanvasPixel(rawContext,   x - 1, y), p, 2)
-						+ !this.isPixel(getCanvasPixel(rawContext, x + 1, y), p, 2)
-						+  this.isPixel(getCanvasPixel(rawContext, x - 1, y + 1), p, 2)
-						+  this.isPixel(getCanvasPixel(rawContext, x,     y + 1), p, 2)
-						+  this.isPixel(getCanvasPixel(rawContext, x + 1, y + 1), p, 2)
-						+ !this.isPixel(getCanvasPixel(rawContext, x - 1, y + 2), p, 2)
-						+  this.isPixel(getCanvasPixel(rawContext, x,     y + 2), p, 2)
-						+ !this.isPixel(getCanvasPixel(rawContext, x + 1, y + 2), p, 2);
+						!rawCanvas.isPixel(  x - 1, y, p, 2)
+						+ !rawCanvas.isPixel(x + 1, y, p, 2)
+						+  rawCanvas.isPixel(x - 1, y + 1, p, 2)
+						+  rawCanvas.isPixel(x,     y + 1, p, 2)
+						+  rawCanvas.isPixel(x + 1, y + 1, p, 2)
+						+ !rawCanvas.isPixel(x - 1, y + 2, p, 2)
+						+  rawCanvas.isPixel(x,     y + 2, p, 2)
+						+ !rawCanvas.isPixel(x + 1, y + 2, p, 2);
 
 					if (score > best) {
 						best = score;
-						bestGridPixels = {};
+						bestGridPixels = new COLORBIN();
 						bestGridPixels[p] = 1;
 						positions = {}
 						positions[p] = [x, y + 1];
 					}
 					else if (score == best) {
 						var np;
-						if (np=this.hasPixel(p, bestGridPixels)) {
+						if (np=bestGridPixels.hasPixel(p)) {
 							++bestGridPixels[np];
 						}
 						else {
@@ -298,7 +217,7 @@ function CLIPBOARD_CLASS(rawCanvas, finalCanvas) {
 			var tx = x + 23, ty = y > 0 ? y - 1 : y + 1;
 				while (tx > 24) {
 					tx -= 24;
-					if (this.isPixel(getCanvasPixel(rawContext, tx, ty), bestGridPixel, 2)) {
+					if (rawCanvas.isPixel(tx, ty, bestGridPixel, 2)) {
 						// This pixel should not be similar unless it's at the edge.
 						break;
 					}
@@ -310,7 +229,7 @@ function CLIPBOARD_CLASS(rawCanvas, finalCanvas) {
 				tx = x > 0 ? x - 1 : x + 1; ty = y + 23;
 				while (ty > 24) {
 					ty -= 24;
-					if (this.isPixel(getCanvasPixel(rawContext, tx, ty), bestGridPixel, 2)) {
+					if (rawCanvas.isPixel(tx, ty, bestGridPixel, 2)) {
 						// This pixel should not be similar unless it's at the edge.
 						break;
 					}
@@ -351,7 +270,7 @@ function CLIPBOARD_CLASS(rawCanvas, finalCanvas) {
 	this.preCrop = function () {
 		var pos = this.findGrid();
 		var left = pos[0], top = pos[1];
-		var gridColor = getCanvasPixel(rawContext, left, top);
+		var gridColor = rawCanvas.getPixel(left, top);
 		
 		// We ignore everything to the left of pos[0] and above pos[1].
 		// We need to find the right-most and bottom-most grid position available.
@@ -359,10 +278,11 @@ function CLIPBOARD_CLASS(rawCanvas, finalCanvas) {
 		var right, bottom;
 
 		// Find right-most bit by scanning verts at 24 pixel intervals.
-		for (tx = left + 24; tx < rawCanvas.width; tx += 24) {
+		var width = rawCanvas.width(), height = rawCanvas.height();
+		for (tx = left + 24; tx < width; tx += 24) {
 			var found = false;
-			for (ty = 0; ty < rawCanvas.height; ++ty) {
-				if (this.isPixel(getCanvasPixel(rawContext, tx, ty), gridColor)) {
+			for (ty = 0; ty < height; ++ty) {
+				if (rawCanvas.isPixel(tx, ty, gridColor)) {
 					right = tx;
 					found = true;
 					break;
@@ -372,10 +292,10 @@ function CLIPBOARD_CLASS(rawCanvas, finalCanvas) {
 		}
 
 		// Find bottom-most bit by scanning horz at 24 pixel intervals.
-		for (ty = top + 24; ty < rawCanvas.height; ty += 24) {
+		for (ty = top + 24; ty < height; ty += 24) {
 			var found = false;
-			for (tx = 0; tx < rawCanvas.width; ++tx) {
-				if (this.isPixel(getCanvasPixel(rawContext, tx, ty), gridColor)) {
+			for (tx = 0; tx < width; ++tx) {
+				if (rawCanvas.isPixel(tx, ty, gridColor)) {
 					bottom = ty;
 					found = true;
 					break;
@@ -394,21 +314,9 @@ function CLIPBOARD_CLASS(rawCanvas, finalCanvas) {
 		return gridColor;
 	}
 
-	this.crop = function () {
-		var left = parseInt($("#left").val());
-		var top = parseInt($("#top").val());
-		var width = parseInt($("#right").val()) - left + 1;
-		var height = parseInt($("#bottom").val()) - top + 1;
-
-		var data = rawContext.getImageData(left, top, width, height);
-		finalCanvas.width = width;
-		finalCanvas.height = height;
-		finalContext.putImageData(data, 0, 0);
-	}
-
 	this.findBackground = function () {
 		var gridColor = this.preCrop();
-		this.crop();
+		finalCanvas.crop(rawCanvas);
 
 		// Besides the grid colour, there's four colours of importance.
 		// The pattern is as so:
@@ -421,7 +329,7 @@ function CLIPBOARD_CLASS(rawCanvas, finalCanvas) {
 		// GGGGGGGGGGGGGGGGGGGGGGGG
 
 		// Check all expected positions for each.
-		var totals = this.profileRects([
+		var totals = finalCanvas.profileRects([
 			[0, 0, 24, 24]
 		]);
 
@@ -434,7 +342,7 @@ function CLIPBOARD_CLASS(rawCanvas, finalCanvas) {
 		shadowColor = getColorAsHex(shadowColor);
 
 		// Find inner colour.
-		var profile = this.profileRects(innerRect);
+		var profile = finalCanvas.profileRects(innerRect);
 		var minBoxDiff = 9001, minBoxColor, minShadowDiff = 9001, minShadowColor;
 		for (let color in profile) {
 			var hex = getColorAsHex(color);
@@ -465,68 +373,20 @@ function CLIPBOARD_CLASS(rawCanvas, finalCanvas) {
 	}
 
 	this.cleanIcon = function () {
-		this.crop();
+		finalCanvas.redraw();
 
-		this.hideRectsIf(gridRects, $("#grid-color").data("best"));
-		this.hideRectsIf(cornerRects, $("#corner-color").data("best"));
-		this.hideRectsIf(boxRects, $("#box-color").data("best"));
-		this.hideRectsIf(shadowRects, $("#shadow-color").data("best"));
-		this.hideRectsIf(innerRect, $("#inner-color").data("best"));
-	}
-
-
-	this.profileRects = function (rects, canvas) {
-		var data = {}
-		for (var y = 0; y < finalCanvas.height; y += 24) {
-			for (var x = 0; x < finalCanvas.width; x += 24) {
-				for (let rect of rects) {
-					var pixels = finalContext.getImageData(x + rect[0], y + rect[1], rect[2], rect[3]).data;
-
-					for (var p = 0; p < pixels.length; p += 4) {
-						var color = (pixels[p] << 16) + (pixels[p + 1] << 8) + pixels[p + 2], cc;
-
-						if ((cc = this.hasPixel(color, data)) != null) {
-							++data[cc];
-						}
-						else {
-							data[color] = 1;
-						}
-					}
-				}
-			}
-		}
-
-		return data;
-	}
-
-	this.hideRectsIf = function (rects, erase) {
-		for (var y = 0; y < finalCanvas.height; y += 24) {
-			for (var x = 0; x < finalCanvas.width; x += 24) {
-				for (let rect of rects) {
-					var destX = x + rect[0], destY = y + rect[1];
-					var width = rect[2], height = rect[3];
-					var pixels = finalContext.getImageData(destX, destY, width, height);
-					var data = pixels.data;
-
-					for (var p = 0; p < data.length; p += 4) {
-						var color = (data[p] << 16) + (data[p + 1] << 8) + data[p + 2];
-
-						if (this.isPixel(color, erase)) {
-							data[p + 3] = 0;
-						}
-					}
-
-					finalContext.putImageData(pixels, destX, destY);
-				}
-			}
-		}
+		finalCanvas.hideRectsIf(gridRects, $("#grid-color").data("best"));
+		finalCanvas.hideRectsIf(cornerRects, $("#corner-color").data("best"));
+		finalCanvas.hideRectsIf(boxRects, $("#box-color").data("best"));
+		finalCanvas.hideRectsIf(shadowRects, $("#shadow-color").data("best"));
+		finalCanvas.hideRectsIf(innerRect, $("#inner-color").data("best"));
 	}
 
 	this.profileRectsAndSave = function (selector, rects, totals) {
-		var profile = this.profileRects(rects);
+		var profile = finalCanvas.profileRects(rects);
 
 		var others = [];
-		var best = finalCanvas.width * finalCanvas.height, bestColor;
+		var best = finalCanvas.width() * finalCanvas.height(), bestColor;
 		for (var x in profile) {
 			others.push(parseInt(x));
 
@@ -577,9 +437,4 @@ function scaleImageData(ctx, imageData, scale) {
 	}
 
 	return scaled;
-}
-
-function getCanvasPixel(ctx, x, y) {
-	var p = ctx.getImageData(x, y, 1, 1).data;
-	return (p[0] << 16) + (p[1] << 8) + p[2];
 }
