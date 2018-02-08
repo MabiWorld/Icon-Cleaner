@@ -15,7 +15,7 @@ $(function () {
 		$("#color-selector").hide();
 	});
 
-	$(".selection.normal").click(function (e) {
+	$(".selection").click(function (e) {
 		var $this = $(this);
 		var $sel = $("#color-selector").empty();
 
@@ -102,11 +102,11 @@ function CLIPBOARD_CLASS(rawCanvas, finalCanvas) {
 		return;
 	}
 
-	var canvas = $rawCanvas[0];
-	var ctx = canvas.getContext("2d");
+	var rawCanvas = $rawCanvas[0];
+	var rawContext = rawCanvas.getContext("2d");
 
-	var canvas2 = $finalCanvas[0];
-	var ctx2 = canvas2.getContext("2d");
+	var finalCanvas = $finalCanvas[0];
+	var finalContext = finalCanvas.getContext("2d");
 
 	var image;
 
@@ -140,23 +140,23 @@ function CLIPBOARD_CLASS(rawCanvas, finalCanvas) {
 		var pastedImage = image = new Image();
 		pastedImage.onload = function () {
 			//resize
-			canvas.width = pastedImage.width;
-			canvas.height = pastedImage.height;
+			rawCanvas.width = pastedImage.width;
+			rawCanvas.height = pastedImage.height;
 
-			ctx.drawImage(pastedImage, 0, 0);
+			rawContext.drawImage(pastedImage, 0, 0);
 		};
 		pastedImage.src = source;
 	};
 
 	this.redrawImage = function () {
 		if (image) {
-			ctx.drawImage(image, 0, 0);
+			rawContext.drawImage(image, 0, 0);
 		}
 	}
 
 	this.getPixel = function (x, y) {
 		// Need to compare with == so ...
-		var p = ctx.getImageData(x, y, 1, 1).data;
+		var p = rawContext.getImageData(x, y, 1, 1).data;
 		return (p[0] << 16) + (p[1] << 8) + p[2];
 	}
 
@@ -212,21 +212,21 @@ function CLIPBOARD_CLASS(rawCanvas, finalCanvas) {
 
 		for (y = 0; y < 25; ++y) {
 			for (x = 0; x < 25; ++x) {
-				var p = getCanvasPixel(ctx, x, y);
+				var p = getCanvasPixel(rawContext, x, y);
 				intersection[p] = true;
 			}
 		}
 
 		for(let d of [
-			[canvas.width - 25, 0],
-			[0, canvas.height - 25],
-			[canvas.width - 25, canvas.height - 25],
+			[rawCanvas.width - 25, 0],
+			[0, rawCanvas.height - 25],
+			[rawCanvas.width - 25, rawCanvas.height - 25],
 		]) {
 			var pp = {};
 			var xx = d[0], yy = d[1];
 			for (y = 0; y < 25; ++y) {
 				for (x = 0; x < 25; ++x) {
-					var p = getCanvasPixel(ctx, xx + x, yy + y);
+					var p = getCanvasPixel(rawContext, xx + x, yy + y);
 					if (p=this.hasPixel(p, intersection)) {
 						pp[p] = true;
 					}
@@ -245,19 +245,19 @@ function CLIPBOARD_CLASS(rawCanvas, finalCanvas) {
 		// Going to cheat here... look for somewhere on the screen that has a + shape in these colours.
 		// TODO: This may have trouble with sides of the inventory window.
 		var positions = {}, bestGridPixels = {}, best = 0;
-		for (y = 0; y < canvas.height; ++y) {
-			for (x = 0; x < canvas.width; ++x) {
-				var p = getCanvasPixel(ctx, x, y);
+		for (y = 0; y < rawCanvas.height; ++y) {
+			for (x = 0; x < rawCanvas.width; ++x) {
+				var p = getCanvasPixel(rawContext, x, y);
 				if (this.hasPixel(p, intersection)) {
 					var score =
-						!this.isPixel(getCanvasPixel(ctx,   x - 1, y), p, 2)
-						+ !this.isPixel(getCanvasPixel(ctx, x + 1, y), p, 2)
-						+  this.isPixel(getCanvasPixel(ctx, x - 1, y + 1), p, 2)
-						+  this.isPixel(getCanvasPixel(ctx, x,     y + 1), p, 2)
-						+  this.isPixel(getCanvasPixel(ctx, x + 1, y + 1), p, 2)
-						+ !this.isPixel(getCanvasPixel(ctx, x - 1, y + 2), p, 2)
-						+  this.isPixel(getCanvasPixel(ctx, x,     y + 2), p, 2)
-						+ !this.isPixel(getCanvasPixel(ctx, x + 1, y + 2), p, 2);
+						!this.isPixel(getCanvasPixel(rawContext,   x - 1, y), p, 2)
+						+ !this.isPixel(getCanvasPixel(rawContext, x + 1, y), p, 2)
+						+  this.isPixel(getCanvasPixel(rawContext, x - 1, y + 1), p, 2)
+						+  this.isPixel(getCanvasPixel(rawContext, x,     y + 1), p, 2)
+						+  this.isPixel(getCanvasPixel(rawContext, x + 1, y + 1), p, 2)
+						+ !this.isPixel(getCanvasPixel(rawContext, x - 1, y + 2), p, 2)
+						+  this.isPixel(getCanvasPixel(rawContext, x,     y + 2), p, 2)
+						+ !this.isPixel(getCanvasPixel(rawContext, x + 1, y + 2), p, 2);
 
 					if (score > best) {
 						best = score;
@@ -298,7 +298,7 @@ function CLIPBOARD_CLASS(rawCanvas, finalCanvas) {
 			var tx = x + 23, ty = y > 0 ? y - 1 : y + 1;
 				while (tx > 24) {
 					tx -= 24;
-					if (this.isPixel(getCanvasPixel(ctx, tx, ty), bestGridPixel, 2)) {
+					if (this.isPixel(getCanvasPixel(rawContext, tx, ty), bestGridPixel, 2)) {
 						// This pixel should not be similar unless it's at the edge.
 						break;
 					}
@@ -310,7 +310,7 @@ function CLIPBOARD_CLASS(rawCanvas, finalCanvas) {
 				tx = x > 0 ? x - 1 : x + 1; ty = y + 23;
 				while (ty > 24) {
 					ty -= 24;
-					if (this.isPixel(getCanvasPixel(ctx, tx, ty), bestGridPixel, 2)) {
+					if (this.isPixel(getCanvasPixel(rawContext, tx, ty), bestGridPixel, 2)) {
 						// This pixel should not be similar unless it's at the edge.
 						break;
 					}
@@ -351,7 +351,7 @@ function CLIPBOARD_CLASS(rawCanvas, finalCanvas) {
 	this.preCrop = function () {
 		var pos = this.findGrid();
 		var left = pos[0], top = pos[1];
-		var gridColor = getCanvasPixel(ctx, left, top);
+		var gridColor = getCanvasPixel(rawContext, left, top);
 		
 		// We ignore everything to the left of pos[0] and above pos[1].
 		// We need to find the right-most and bottom-most grid position available.
@@ -359,10 +359,10 @@ function CLIPBOARD_CLASS(rawCanvas, finalCanvas) {
 		var right, bottom;
 
 		// Find right-most bit by scanning verts at 24 pixel intervals.
-		for (tx = left + 24; tx < canvas.width; tx += 24) {
+		for (tx = left + 24; tx < rawCanvas.width; tx += 24) {
 			var found = false;
-			for (ty = 0; ty < canvas.height; ++ty) {
-				if (this.isPixel(getCanvasPixel(ctx, tx, ty), gridColor)) {
+			for (ty = 0; ty < rawCanvas.height; ++ty) {
+				if (this.isPixel(getCanvasPixel(rawContext, tx, ty), gridColor)) {
 					right = tx;
 					found = true;
 					break;
@@ -372,10 +372,10 @@ function CLIPBOARD_CLASS(rawCanvas, finalCanvas) {
 		}
 
 		// Find bottom-most bit by scanning horz at 24 pixel intervals.
-		for (ty = top + 24; ty < canvas.height; ty += 24) {
+		for (ty = top + 24; ty < rawCanvas.height; ty += 24) {
 			var found = false;
-			for (tx = 0; tx < canvas.width; ++tx) {
-				if (this.isPixel(getCanvasPixel(ctx, tx, ty), gridColor)) {
+			for (tx = 0; tx < rawCanvas.width; ++tx) {
+				if (this.isPixel(getCanvasPixel(rawContext, tx, ty), gridColor)) {
 					bottom = ty;
 					found = true;
 					break;
@@ -400,10 +400,10 @@ function CLIPBOARD_CLASS(rawCanvas, finalCanvas) {
 		var width = parseInt($("#right").val()) - left + 1;
 		var height = parseInt($("#bottom").val()) - top + 1;
 
-		var data = ctx.getImageData(left, top, width, height);
-		canvas2.width = width;
-		canvas2.height = height;
-		ctx2.putImageData(data, 0, 0);
+		var data = rawContext.getImageData(left, top, width, height);
+		finalCanvas.width = width;
+		finalCanvas.height = height;
+		finalContext.putImageData(data, 0, 0);
 	}
 
 	this.findBackground = function () {
@@ -475,12 +475,12 @@ function CLIPBOARD_CLASS(rawCanvas, finalCanvas) {
 	}
 
 
-	this.profileRects = function (rects) {
+	this.profileRects = function (rects, canvas) {
 		var data = {}
-		for (var y = 0; y < canvas2.height; y += 24) {
-			for (var x = 0; x < canvas2.width; x += 24) {
+		for (var y = 0; y < finalCanvas.height; y += 24) {
+			for (var x = 0; x < finalCanvas.width; x += 24) {
 				for (let rect of rects) {
-					var pixels = ctx2.getImageData(x + rect[0], y + rect[1], rect[2], rect[3]).data;
+					var pixels = finalContext.getImageData(x + rect[0], y + rect[1], rect[2], rect[3]).data;
 
 					for (var p = 0; p < pixels.length; p += 4) {
 						var color = (pixels[p] << 16) + (pixels[p + 1] << 8) + pixels[p + 2], cc;
@@ -500,12 +500,12 @@ function CLIPBOARD_CLASS(rawCanvas, finalCanvas) {
 	}
 
 	this.hideRectsIf = function (rects, erase) {
-		for (var y = 0; y < canvas2.height; y += 24) {
-			for (var x = 0; x < canvas2.width; x += 24) {
+		for (var y = 0; y < finalCanvas.height; y += 24) {
+			for (var x = 0; x < finalCanvas.width; x += 24) {
 				for (let rect of rects) {
 					var destX = x + rect[0], destY = y + rect[1];
 					var width = rect[2], height = rect[3];
-					var pixels = ctx2.getImageData(destX, destY, width, height);
+					var pixels = finalContext.getImageData(destX, destY, width, height);
 					var data = pixels.data;
 
 					for (var p = 0; p < data.length; p += 4) {
@@ -516,7 +516,7 @@ function CLIPBOARD_CLASS(rawCanvas, finalCanvas) {
 						}
 					}
 
-					ctx2.putImageData(pixels, destX, destY);
+					finalContext.putImageData(pixels, destX, destY);
 				}
 			}
 		}
@@ -526,7 +526,7 @@ function CLIPBOARD_CLASS(rawCanvas, finalCanvas) {
 		var profile = this.profileRects(rects);
 
 		var others = [];
-		var best = canvas2.width * canvas2.height, bestColor;
+		var best = finalCanvas.width * finalCanvas.height, bestColor;
 		for (var x in profile) {
 			others.push(parseInt(x));
 
