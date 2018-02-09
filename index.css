@@ -19,7 +19,7 @@ canvas {
 	text-align: left;
 }
 
-.show-corrections {
+.show-corrections, .button {
 	cursor: pointer;
 	text-decoration: underline;
 }
@@ -38,6 +38,10 @@ canvas {
 	margin-right: 15px;
 }
 
+.selections {
+	max-width: 110px;
+}
+
 .selection {
 	display: inline-block;
 	width: 20px;
@@ -51,5 +55,11 @@ canvas {
 #color-selector {
 	position: absolute;
 
-	max-width: 110px;
+	text-align: left;
+
+	background-color: white;
+}
+
+.color-preview {
+	text-align: center;
 }

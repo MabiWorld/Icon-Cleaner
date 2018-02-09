@@ -59,7 +59,7 @@ PUBLIC(CANVAS, "crop", function (source) {
 
 PUBLIC(CANVAS, "redraw", function () {
 	if (this.image) {
-		this.context.drawImage(image, 0, 0);
+		this.context.drawImage(this.image, 0, 0);
 	}
 	else if (this.cropSource) {
 		var left = parseInt($("#left").val());
@@ -69,10 +69,11 @@ PUBLIC(CANVAS, "redraw", function () {
 
 		if (isNaN(left) || isNaN(top)
 		|| isNaN(right) || isNaN(bottom)) {
-			this.canvas.width = initialWidth;
-			this.canvas.height = initialHeight;
-			this.context.clearRect();
+			this.canvas.width = this.initialWidth;
+			this.canvas.height = this.initialHeight;
+			this.context.clearRect(0, 0, this.initialWidth, this.initialHeight);
 			console.log("Tried to render a crop without all coordinates discovered.");
+			return;
 		}
 
 		var width = right - left + 1;
@@ -112,6 +113,10 @@ PUBLIC(CANVAS, "search", function (patterns, tolerance, left, top, width, height
 
 		row.push(color);
 	}
+
+	// Just wanted pixels.
+	if (!patterns) return;
+	if (!patterns.length) return [];
 
 	// Copy patterns.
 	var remaining = {};
@@ -250,6 +255,8 @@ PUBLIC(CANVAS, "profileRects", function (rects) {
 });
 
 PUBLIC(CANVAS, "hideRectsIf", function (rects, erase) {
+	var hex = getColorAsHex(erase);
+
 	for (var y = 0; y < this.canvas.height; y += 24) {
 		for (var x = 0; x < this.canvas.width; x += 24) {
 			for (let rect of rects) {
@@ -261,7 +268,7 @@ PUBLIC(CANVAS, "hideRectsIf", function (rects, erase) {
 				for (var p = 0; p < data.length; p += 4) {
 					var color = (data[p] << 16) + (data[p + 1] << 8) + data[p + 2];
 
-					if (COLORBIN.isPixel(color, erase)) {
+					if (chromatism.difference(getColorAsHex(color), hex) < 40) {
 						data[p + 3] = 0;
 					}
 				}

@@ -11,9 +11,67 @@ $(function () {
 		}
 	});
 
+	$(".positions input").change(function () {
+		CLIPBOARD.findBackground();
+	});
+
 	$("body").click(function () {
 		$("#color-selector").hide();
 	});
+
+	function makeSelector($sel, $elem) {
+		// Select any colour from image.
+		var cleanCanvas = $elem.hasClass("normal") ? CLIPBOARD.finalCanvas : CLIPBOARD.rawCanvas;
+		cleanCanvas.redraw();
+
+		var selCanvas, $selCanvas = $("<canvas>").attr({
+			"width": cleanCanvas.width() * 4,
+			"height": cleanCanvas.height() * 4,
+		}).click(function (e) {
+			var offset = $(this).offset();
+			var x = e.pageX - offset.left;
+			var y = e.pageY - offset.top;
+
+			var pixel = selCanvas.getPixel(x, y);
+			$elem.data("best", pixel)
+				.css("background-color", getColorAsHex(pixel));
+
+			$sel.hide();
+			if ($elem.hasClass("normal")) {
+				CLIPBOARD.cleanIcon();
+			}
+			else {
+				CLIPBOARD.findBackground();
+			}
+		})
+		.mousemove(function (e) {
+			var offset = $(this).offset();
+			var x = e.pageX - offset.left;
+			var y = e.pageY - offset.top;
+			var pixel = getColorAsHex(selCanvas.getPixel(x, y));
+			
+			$(".color-preview")
+				.css({
+					"background-color": pixel,
+					"color": chromatism.contrastRatio(pixel).hex,
+				})
+				.text(pixel);
+		})
+		.appendTo($sel);
+
+		selCanvas = new CANVAS($selCanvas);
+
+		var image = cleanCanvas.context.getImageData(0, 0, cleanCanvas.width(), cleanCanvas.height())
+
+		selCtx = selCanvas.context;
+		selCtx.putImageData(scaleImageData(selCtx, image, 4), 0, 0);
+
+		// Add hex code view.
+		var color = $elem.data("best");
+		$("<div>").addClass("color-preview")
+			.text(color ? getColorAsHex(color) : "<none>")
+			.appendTo($sel);
+	}
 
 	$(".selection").click(function (e) {
 		var $this = $(this);
@@ -27,49 +85,46 @@ $(function () {
 		var selection = $this.data("selection");
 		if (selection) {
 			// Limited selection of other colours.
+			var $div = $("<div>").addClass("selections").appendTo($sel);
 			var $template = $("<span>").addClass("selection");
 			for (let c of selection) {
 				$template.clone()
-					.data("base", c)
+					.data("best", c)
 					.css("background-color", getColorAsHex(c))
 					.click(function () {
-						var col = $(this).data("base");
-						$this.data("base", col)
+						var col = $(this).data("best");
+						$this.data("best", col)
 							.css("background-color", getColorAsHex(col));
 						
 						$sel.hide();
 						CLIPBOARD.cleanIcon();
 					})
-					.appendTo($sel);
+					.mouseover(function () {
+						$(".color-preview").text(
+							getColorAsHex($(this).data("best"))
+						);
+					})
+					.appendTo($div);
 			}
+
+			// Add hex code view.
+			var current = $this.data("best");
+			$("<div>").addClass("color-preview")
+				.text(current ? getColorAsHex(current) : "<none>")
+				.appendTo($sel);
+
+			// Add open general color select button.
+			$("<div>").addClass("button")
+				.text("Selector...")
+				.click(function (e) {
+					makeSelector($sel.empty(), $this);
+
+					e.stopPropagation();
+				})
+				.appendTo($sel);
 		}
 		else {
-			// Select any colour from image.
-			var cleanCanvas = CLIPBOARD.finalCanvas;
-			cleanCanvas.redraw();
-
-			var selCanvas, $selCanvas = $("<canvas>").attr({
-				"width": cleanCanvas.width() * 2,
-				"height": cleanCanvas.height() * 2,
-			}).click(function (e) {
-				var offset = $(this).offset();
-				var x = e.pageX - offset.left;
-				var y = e.pageY - offset.top;
-
-				var pixel = cleanCanvas.getPixel(x, y);
-				$this.data("best", pixel)
-					.css("background-color", getColorAsHex(pixel));
-
-				$sel.hide();
-				CLIPBOARD.cleanIcon();
-			}).appendTo($sel);
-
-			selCanvas = new CANVAS($selCanvas);
-
-			var image = cleanCanvas.context.getImageData(0, 0, cleanCanvas.width(), cleanCanvas.height())
-
-			selCtx = selCanvas.getContext("2d");
-			selCtx.putImageData(scaleImageData(selCtx, image, 2), 0, 0);
+			makeSelector($sel, $this);
 		}
 
 		var offset = $this.offset();
@@ -92,8 +147,6 @@ function CLIPBOARD_CLASS(rawCanvas, finalCanvas) {
 	var _self = this;
 	var rawCanvas = this.rawCanvas = new CANVAS(rawCanvas);
 	var finalCanvas = this.finalCanvas = new CANVAS(finalCanvas);
-
-	var image;
 
 	//handlers
 	document.addEventListener('paste', function (e) { _self.paste_auto(e); }, false);
@@ -152,7 +205,7 @@ function CLIPBOARD_CLASS(rawCanvas, finalCanvas) {
 		var pixels = rawCanvas.pixels;
 		var width = rawCanvas.width(), height = rawCanvas.height();
 
-		var grids = new COLORBIN();
+		var grids = new COLORBIN(), gridList = [];
 		var maxDiscovered = 0, maxColor, maxPos;
 		for (let results of searches) {
 			for (let result of results) {
@@ -166,7 +219,7 @@ function CLIPBOARD_CLASS(rawCanvas, finalCanvas) {
 					"right": x,
 					"bottom": y,
 					"searches": 1,
-					"discoveries": 0,
+					"color": c,
 				}
 
 				if ((cc=grids.hasPixel(c, 2)) != null) {
@@ -183,114 +236,116 @@ function CLIPBOARD_CLASS(rawCanvas, finalCanvas) {
 					if (skip) continue;
 
 					grids[c].push(r);
+					gridList.push(r);
 				}
 				else {
 					grids[c] = [r];
-				}
-
-				// Count all pixels on axes. TODO: Must also count pixels on inv edges.
-				// [Should not appear here (much)] [Sequential edge bit] [Inside edge, sequential to left, % 24 == to grid lines] [grid line ever 24px]
-				// Rotate the above semantics based on edge we're on.
-
-				var discovered = 0;
-				for (var lx = x - 24; lx > 0; lx -= 24) {
-					var found = false;
-					for (var ly = 0; ly < height; ++ly) {
-						if (COLORBIN.isPixel(pixels[ly][lx], c)) {
-							++discovered;
-							found = true;
-						}
-					}
-
-					if (!found) break;
-
-					// TODO: keep going if we don't enounter something.
-					// If we encounter more afterwards, it's suspicious
-				}
-
-				lx += 24;
-				if (lx < r.left) r.left = lx;
-
-				for (var lx = x + 24; lx < width; lx += 24) {
-					var found = false;
-					for (var ly = 0; ly < height; ++ly) {
-						if (COLORBIN.isPixel(pixels[ly][lx], c)) {
-							++discovered;
-							found = true;
-						}
-					}
-
-					if (!found) break;
-
-					// TODO: keep going if we don't enounter something.
-					// If we encounter more afterwards, it's suspicious
-				}
-
-				lx -= 24;
-				if (lx > r.right) r.right = lx;
-				
-				for (var ly = y - 24; ly > 0; ly -= 24) {
-					var found = false;
-					var pp = pixels[ly];
-					for (var lx = 0; lx < width; ++lx) {
-						if (COLORBIN.isPixel(pp[lx], c)) {
-							++discovered;
-							found = true;
-						}
-					}
-
-					if (!found) break;
-
-					// TODO: keep going if we don't enounter something.
-					// If we encounter more afterwards, it's suspicious
-				}
-
-				ly += 24;
-				if (ly < r.top) r.top = ly;
-				
-				for (var ly = y + 24; ly < height; ly += 24) {
-					var found = false;
-					var pp = pixels[ly];
-					for (var lx = 0; lx < width; ++lx) {
-						if (COLORBIN.isPixel(pp[lx], c)) {
-							++discovered;
-							found = true;
-						}
-					}
-
-					if (!found) break;
-
-					// TODO: keep going if we don't enounter something.
-					// If we encounter more afterwards, it's suspicious
-				}
-
-				ly -= 24;
-				if (ly > r.bottom) r.bottom = ly;
-
-				r.discoveries = discovered;
-			}
-		}
-
-		var bestScore = 0, best, bestColor;
-		for (let c in grids) {
-			for (let gridc of grids[c]) {
-				var score = gridc.searches;
-
-				if (score > bestScore) {
-					bestScore = score;
-					best = gridc;
-					bestColor = c;
+					gridList.push(r);
 				}
 			}
 		}
 
-		// Exclude the grid line on the left and top. Include on right and bottom.
-		$("#left").val(best.left + 2);
-		$("#top").val(best.top + 2);
-		$("#right").val(best.right + 1);
-		$("#bottom").val(best.bottom + 1);
+		// Sort the possibilities by searches found.
+		gridList.sort(
+			(a, b) => b.searches - a.searches
+		);
 
-		return bestColor;
+		var best;
+		for (let grid of gridList) {
+			if (best=this.isGrid(pixels, grid.color)) {
+				break;
+			}
+		}
+
+		return best ? best.color : undefined;
+	}
+
+	this.isGrid = function (pixels, color) {
+		var hex = getColorAsHex(color);
+		var height = pixels.length, width = pixels[0].length;
+
+		// Profile the color along the verticals.
+		var cols = new Array(width);
+		for (let x = 0; x < width; ++x) {
+			let col = 0;
+			for (let y = 0; y < height; ++y) {
+				if (chromatism.difference(getColorAsHex(pixels[y][x]), hex) < 40) {
+					++col;
+				}
+			}
+			cols[x] = col;
+		}
+
+		// Categorize the columns...
+		var breaks = jenks(cols, 3), colClasses = "";
+		for (let c = 0; c < width; ++c) {
+			var col = cols[c];
+
+			for (let b = 1; b <= 3; ++b) {
+				if (col <= breaks[b]) {
+					colClasses += b.toString();
+					break;
+				}
+			}
+		}
+
+		var mo, result = { "color": color };
+		if (
+			// Does this include past the left edge of the inventory window? (and possibly the right?)
+			(mo=colClasses.match(/^(1+3+)((2{23}3)+)(3+1*|2*)$/))
+			// or does this include past the right edge of the inventory window? (and possibly include [some of] the left edge?)
+			|| (mo=colClasses.match(/^(1*3+|2*3)((2{23}3)+)3+1+$/))
+			// or does this include [some of] the left edge of the inventory window? (and possibly [some of] the right?)
+			|| (mo=colClasses.match(/^(3+)((1{23}[23])+)(3+|1*)$/))
+			// or does this only include [some of] the right edge of the inventory window, if any edge?
+			|| (mo=colClasses.match(/^(1*[23])((1{23}[23])+)(3+|1*)$/))
+		) {
+			result.left = mo[1].length;
+			result.right = result.left + mo[2].length - 1; // TODO: off by 1?
+		}
+		else {
+			return null;
+		}
+
+		// Shortcut to finding if there's a top/bottom edge present.
+		// If not, it still finds the bottom and top of the grid.
+		var x = result.left;
+		var top = 0, bottom = 0, bottomEnd = false;
+		for (let y = height - 1; y >= 0; --y) {
+			if (chromatism.difference(getColorAsHex(pixels[y][x]), hex) < 40) {
+				if (bottomEnd) {
+					++top;
+				}
+				else {
+					++bottom;
+				}
+			}
+			else if (top) {
+				result.top = y + top + 1;
+				if (top > 1) {
+					top = 0;
+					break;
+				}
+				top = 0;
+			}
+			else if (bottom) {
+				bottomEnd = true;
+				result.bottom = y + 1;
+				bottom = 0;
+			}
+		}
+
+		if (top) {
+			// In the event we ended midway through the top edge.
+			result.top = top;
+		}
+
+		$("#left").val(result.left);
+		$("#top").val(result.top);
+		$("#right").val(result.right);
+		$("#bottom").val(result.bottom);
+
+		return result;
 	}
 
 
@@ -318,7 +373,17 @@ function CLIPBOARD_CLASS(rawCanvas, finalCanvas) {
 	var innerRect = [[2, 2, 20, 20]];
 
 	this.findBackground = function () {
-		var gridColor = this.findGrid();
+		var gridColor = $("#grid-color").data("best");
+		
+		if (!gridColor || (rawCanvas.search() && !this.isGrid(rawCanvas.pixels, gridColor))) {
+			gridColor = this.findGrid();
+		}
+
+		if (!gridColor) {
+			console.warn("Grid color could not be found!!");
+			return;
+		}
+		
 		finalCanvas.crop(rawCanvas);
 
 		// Besides the grid colour, there's four colours of importance.
