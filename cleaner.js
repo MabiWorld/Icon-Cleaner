@@ -299,6 +299,7 @@ function CLIPBOARD_CLASS(rawCanvas, finalCanvas) {
 			|| (mo=colClasses.match(/^(3+)((1{23}[23])+)(3+|1*)$/))
 			// or does this only include [some of] the right edge of the inventory window, if any edge?
 			|| (mo=colClasses.match(/^(1*[23])((1{23}[23])+)(3+|1*)$/))
+			|| (mo=colClasses.match(/^([12]*3)(([12]{23}3)+)(3+|[12]*)$/))
 		) {
 			result.left = mo[1].length;
 			result.right = result.left + mo[2].length - 1; // TODO: off by 1?
