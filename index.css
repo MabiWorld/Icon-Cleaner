@@ -38,6 +38,15 @@ canvas {
 	margin-right: 15px;
 }
 
+.color-help {
+	white-space: nowrap;
+	display: inline-block;
+	width: 20px;
+	height: 20px;
+
+	border: 1px dashed gray;
+}
+
 .selections {
 	max-width: 110px;
 }

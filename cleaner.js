@@ -130,10 +130,28 @@ $(function () {
 		var offset = $this.offset();
 		$sel.css({
 			"left": offset.left,
-			"top": offset.top + $this.height(),
+			"top": offset.top + $this.outerHeight(),
 		}).show();
 
 		e.stopPropagation();
+	})
+
+	$(".color-help").mouseover(function () {
+		var $this = $(this);
+		var offset = $this.offset();
+
+		var $img = $('<img src="img/colors_help.png"/>');
+
+		$("#color-selector").empty()
+		.append($img)
+		.show()
+		.css({
+			"left": offset.left - 200 + $this.outerWidth(),
+			"top": offset.top + $this.outerHeight(),
+		});
+	})
+	.mouseout(function () {
+		$("#color-selector").hide();
 	})
 });
 
