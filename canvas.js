@@ -117,6 +117,8 @@ PUBLIC(CANVAS, "search", function (patterns, tolerance, left, top, width, height
 
 		row.push(color);
 	}
+	
+	this.pixels = pixels;
 
 	// Just wanted pixels.
 	if (!patterns) return;
@@ -219,7 +221,6 @@ PUBLIC(CANVAS, "search", function (patterns, tolerance, left, top, width, height
 		}
 	}
 
-	this.pixels = pixels;
 	return results;
 });
 
