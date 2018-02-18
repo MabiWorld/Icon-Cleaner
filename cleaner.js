@@ -23,6 +23,10 @@ $(function () {
 		CLIPBOARD.findBackground();
 	});
 
+	$(".commit-colors").click(function () {
+		$(".selection").data("manual", true);
+	});
+
 	$("body").click(function () {
 		$("#color-selector").hide();
 	});
@@ -448,9 +452,9 @@ function CLIPBOARD_CLASS(rawCanvas, finalCanvas) {
 		if (!gridColor) {
 			gridColor = this.findGrid();
 		}
-		else if (!$("#grid-color").data("manual")) {
+		else {
 			rawCanvas.search()
-			if (!this.isGrid(rawCanvas.pixels, gridColor)) {
+			if (!this.isGrid(rawCanvas.pixels, gridColor) && !$("#grid-color").data("manual")) {
 				gridColor = this.findGrid();
 			}
 		}
@@ -556,19 +560,33 @@ function CLIPBOARD_CLASS(rawCanvas, finalCanvas) {
 	this.profileRectsAndSave = function (selector, rects, totals) {
 		var profile = finalCanvas.profileRects(rects);
 
-		var others = [];
-		var best = finalCanvas.width() * finalCanvas.height(), bestColor;
-		for (var x in profile) {
-			others.push(parseInt(x));
+		var manual = $(selector).data("manual");
+		var bestColor, bestHex;
+		if (manual) {
+			bestColor = $(selector).data("best");
+			bestHex = getColorAsHex(bestColor);
+		}
 
-			var score = totals[x] - profile[x];
+		var others = [];
+		var best = manual ? 100 : finalCanvas.width() * finalCanvas.height();
+		for (var x in profile) {
+			x = parseInt(x);
+			others.push(x);
+
+			var score;
+			if (manual) {
+				score = chromatism.difference(getColorAsHex(x), bestHex);
+			}
+			else {
+				score = totals[x] - profile[x];
+			}
+
 			if (score < best) {
 				best = score;
 				bestColor = x;
 			}
 		}
 
-		bestColor = parseInt(bestColor);
 		this.saveColor(selector, bestColor, others);
 		return bestColor;
 	}
@@ -580,6 +598,9 @@ function CLIPBOARD_CLASS(rawCanvas, finalCanvas) {
 
 		if (others) {
 			$elem.data("selection", others);
+		}
+		else {
+			$elem.data("selection", false);
 		}
 	}
 
