@@ -20,6 +20,11 @@ function CANVAS(selector) {
 
 	this.image = null;
 	this.cropSource = null;
+
+	this.left = NaN;
+	this.top = NaN;
+	this.right = NaN;
+	this.bottom = NaN;
 }
 
 PUBLIC(CANVAS, "width", function (width) {
@@ -52,18 +57,22 @@ PUBLIC(CANVAS, "create", function (source) {
 	pastedImage.src = source;
 });
 
-PUBLIC(CANVAS, "crop", function (source) {
+PUBLIC(CANVAS, "crop", function (source, left, top, right, bottom) {
 	this.cropSource = source;
+	this.left = left;
+	this.top = top;
+	this.right = right;
+	this.bottom = bottom;
 	this.redraw();
 });
 
-PUBLIC(CANVAS, "redraw", function (left, top, right, bottom) {
+PUBLIC(CANVAS, "redraw", function () {
 	if (this.image) {
 		this.context.drawImage(this.image, 0, 0);
 	}
 	else if (this.cropSource) {
-		if (isNaN(left) || isNaN(top)
-		|| isNaN(right) || isNaN(bottom)) {
+		if (isNaN(this.left) || isNaN(this.top)
+		|| isNaN(this.right) || isNaN(this.bottom)) {
 			this.canvas.width = this.initialWidth;
 			this.canvas.height = this.initialHeight;
 			this.context.clearRect(0, 0, this.initialWidth, this.initialHeight);
@@ -71,10 +80,10 @@ PUBLIC(CANVAS, "redraw", function (left, top, right, bottom) {
 			return;
 		}
 
-		var width = right - left + 1;
-		var height = bottom - top + 1;
+		var width = this.right - this.left + 1;
+		var height = this.bottom - this.top + 1;
 
-		var data = this.cropSource.context.getImageData(left, top, width, height);
+		var data = this.cropSource.context.getImageData(this.left, this.top, width, height);
 
 		this.canvas.width = width;
 		this.canvas.height = height;

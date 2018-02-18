@@ -11,6 +11,14 @@ $(function () {
 		}
 	});
 
+	$("#grid-adjuster").click(function () {
+		CLIPBOARD.beginGridFinder();
+	});
+
+	$(".slot-selector").click(function () {
+		CLIPBOARD.beginSlotSelector();
+	});
+
 	$(".positions input").change(function () {
 		CLIPBOARD.findBackground();
 	});
@@ -33,8 +41,11 @@ $(function () {
 			var y = e.pageY - offset.top;
 
 			var pixel = selCanvas.getPixel(x, y);
-			$elem.data("best", pixel)
-				.css("background-color", getColorAsHex(pixel));
+			$elem.data({
+				"best": pixel,
+				"manual": true,
+			})
+			.css("background-color", getColorAsHex(pixel));
 
 			$sel.hide();
 			if ($elem.hasClass("normal")) {
@@ -89,7 +100,10 @@ $(function () {
 			var $template = $("<span>").addClass("selection");
 			for (let c of selection) {
 				$template.clone()
-					.data("best", c)
+					.data({
+						"best": c,
+						"manual": true,
+					})
 					.css("background-color", getColorAsHex(c))
 					.click(function () {
 						var col = $(this).data("best");
@@ -167,6 +181,37 @@ function CLIPBOARD_CLASS(rawCanvas, finalCanvas) {
 	var finalCanvas = this.finalCanvas = new CANVAS(finalCanvas);
 
 	//handlers
+	var findingGrid = false;
+	var selectingFirstSlot = false, selectingLastSlot = false;
+	$(rawCanvas.canvas).mousemove(function (e) {
+		var offset = $(this).offset();
+		var x = e.pageX - offset.left;
+		var y = e.pageY - offset.top;
+
+		if (findingGrid) {
+			_self.drawGridFinder(x, y);
+		}
+		else if (selectingFirstSlot || selectingLastSlot) {
+			_self.drawSlotSelector(x, y);
+		}
+	});
+
+	$(rawCanvas.canvas).click(function (e) {
+		var offset = $(this).offset();
+		var x = e.pageX - offset.left;
+		var y = e.pageY - offset.top;
+
+		if (findingGrid) {
+			_self.endGridFinder(x, y);
+		}
+		else if (selectingFirstSlot) {
+			_self.selectFirstSlot(x, y);
+		}
+		else if (selectingLastSlot) {
+			_self.selectLastSlot(x, y);
+		}
+	});
+
 	document.addEventListener('paste', function (e) { _self.paste_auto(e); }, false);
 
 	//on paste
@@ -184,7 +229,7 @@ function CLIPBOARD_CLASS(rawCanvas, finalCanvas) {
 					var source = URLObj.createObjectURL(blob);
 					rawCanvas.create(source);
 
-					setTimeout(this.findBackground.bind(this), 100);
+					setTimeout(this.cleanIcon.bind(this), 100);
 				}
 			}
 			e.preventDefault();
@@ -394,8 +439,14 @@ function CLIPBOARD_CLASS(rawCanvas, finalCanvas) {
 	this.findBackground = function () {
 		var gridColor = $("#grid-color").data("best");
 		
-		if (!gridColor || (rawCanvas.search() && !this.isGrid(rawCanvas.pixels, gridColor))) {
+		if (!gridColor) {
 			gridColor = this.findGrid();
+		}
+		else if (!$("#grid-color").data("manual")) {
+			rawCanvas.search()
+			if (!this.isGrid(rawCanvas.pixels, gridColor)) {
+				gridColor = this.findGrid();
+			}
 		}
 
 		if (!gridColor) {
@@ -403,7 +454,12 @@ function CLIPBOARD_CLASS(rawCanvas, finalCanvas) {
 			return;
 		}
 		
-		finalCanvas.crop(rawCanvas);
+		var left = parseInt($("#left").val());
+		var top = parseInt($("#top").val());
+		var right = parseInt($("#right").val());
+		var bottom = parseInt($("#bottom").val());
+
+		finalCanvas.crop(rawCanvas, left, top, right, bottom);
 
 		// Besides the grid colour, there's four colours of importance.
 		// The pattern is as so:
@@ -455,18 +511,40 @@ function CLIPBOARD_CLASS(rawCanvas, finalCanvas) {
 		}
 
 		this.saveColor("#inner-color", minBoxColor);
-
-		this.cleanIcon();
 	}
 
-	this.cleanIcon = function () {
-		finalCanvas.redraw();
+	this.cleanIcon = function (recursed) {
+		// Ensure we have everything needed...
+		var gridColor = $("#grid-color").data("best");
+		var cornerColor = $("#corner-color").data("best");
+		var boxColor = $("#box-color").data("best");
+		var shadowColor = $("#shadow-color").data("best");
+		var innerColor = $("#inner-color").data("best");
 
-		finalCanvas.hideRectsIf(gridRects, $("#grid-color").data("best"));
-		finalCanvas.hideRectsIf(cornerRects, $("#corner-color").data("best"));
-		finalCanvas.hideRectsIf(boxRects, $("#box-color").data("best"));
-		finalCanvas.hideRectsIf(shadowRects, $("#shadow-color").data("best"));
-		finalCanvas.hideRectsIf(innerRect, $("#inner-color").data("best"));
+		var left = parseInt($("#left").val());
+		var top = parseInt($("#top").val());
+		var right = parseInt($("#right").val());
+		var bottom = parseInt($("#bottom").val());
+
+		if (
+			!gridColor || !cornerColor || !boxColor || !shadowColor || !innerColor
+			|| isNaN(left) || isNaN(top) || isNaN(right) || isNaN(bottom)
+		) {
+			this.findBackground();
+
+			if (!recursed) this.cleanIcon(true);
+			return;
+		}
+
+		// Draw the cropped base.
+		finalCanvas.crop(rawCanvas, left, top, right, bottom);
+
+		// Perform cleaning.
+		finalCanvas.hideRectsIf(gridRects, gridColor);
+		finalCanvas.hideRectsIf(cornerRects, cornerColor);
+		finalCanvas.hideRectsIf(boxRects, boxColor);
+		finalCanvas.hideRectsIf(shadowRects, shadowColor);
+		finalCanvas.hideRectsIf(innerRect, innerColor);
 	}
 
 	this.profileRectsAndSave = function (selector, rects, totals) {
@@ -498,10 +576,136 @@ function CLIPBOARD_CLASS(rawCanvas, finalCanvas) {
 			$elem.data("selection", others);
 		}
 	}
+
+	this.beginGridFinder = function () {
+		findingGrid = true;
+	}
+
+	this.drawGridFinder = function (x, y) {
+		rawCanvas.redraw();
+
+		x = Math.floor(x);
+		y = Math.floor(y);
+
+		var pixel = rawCanvas.getPixel(x, y);
+
+		// Vertical line
+		rawCanvas.drawLine(x, 0, x, rawCanvas.height(), "#f00");
+
+		// Horizontal line
+		rawCanvas.drawLine(0, y, rawCanvas.width(), y, "#f00");
+
+		$("#color-under-cursor").text(getColorAsHex(pixel));
+		$("#grid-color").css("background-color", getColorAsHex(pixel));
+
+		$("#left").val(x);
+		$("#top").val(y);
+	}
+
+	this.endGridFinder = function (x, y) {
+		findingGrid = false;
+		rawCanvas.redraw();
+
+		x = Math.floor(x);
+		y = Math.floor(y);
+
+		var pixel = rawCanvas.getPixel(x, y);
+
+		$("#left").val(x + 1);
+		$("#top").val(y + 1).change();
+
+		$("#color-under-cursor").text("");
+		$("#grid-color").data({
+			"best": pixel,
+			"manual": true,
+		}).css("background-color", getColorAsHex(pixel));
+	}
+
+	this.beginSlotSelector = function () {
+		var left = parseInt($("#left").val());
+		var top = parseInt($("#top").val());
+
+		if (isNaN(left) || isNaN(top)) {
+			console.warn("Tried to select slots when grid hasn't been found.");
+		}
+		else {
+			selectingFirstSlot = true;
+			selectingLastSlot = false;
+		}
+	}
+
+	this.drawSlotSelector = function (x, y) {
+		rawCanvas.redraw();
+
+		x = Math.floor(x);
+		y = Math.floor(y);
+
+		var left = parseInt($("#left").val());
+		var top = parseInt($("#top").val());
+
+		if (x >= left && y >= top) {
+			var rectLeft, rectTop, rectRight, rectBottom;
+
+			if (selectingFirstSlot) {
+				rectLeft = roundToGrid(left, x) - 1;
+				rectTop = roundToGrid(top, y) - 1;
+				rectRight = rectLeft + 25;
+				rectBottom = rectTop + 25;
+			}
+			else {
+				rectLeft = left - 1;
+				rectTop = top - 1;
+				rectRight = roundToGrid(left, x) + 24;
+				rectBottom = roundToGrid(top, y) + 24;
+			}
+
+			// Draw bounding box.
+			rawCanvas.drawLine(rectLeft, rectTop, rectRight, rectTop, "#f00");
+			rawCanvas.drawLine(rectLeft, rectTop, rectLeft, rectBottom, "#f00");
+			rawCanvas.drawLine(rectRight, rectTop, rectRight, rectBottom, "#f00");
+			rawCanvas.drawLine(rectLeft, rectBottom, rectRight, rectBottom, "#f00");
+		}
+	}
+
+	this.selectFirstSlot = function (x, y) {
+		selectingFirstSlot = false;
+		selectingLastSlot = true;
+
+		var $left = $("#left"), $top = $("#top");
+		var left = parseInt($left.val());
+		var top = parseInt($top.val());
+
+		left = roundToGrid(left, x);
+		top = roundToGrid(top, y);
+
+		$left.val(left);
+		$top.val(top);
+	}
+
+	this.selectLastSlot = function (x, y) {
+		selectingFirstSlot = false;
+		selectingLastSlot = false;
+
+		rawCanvas.redraw();
+
+		var $left = $("#left"), $top = $("#top");
+		var left = parseInt($left.val());
+		var top = parseInt($top.val());
+
+		var right = roundToGrid(left, x) + 23;
+		var bottom = roundToGrid(top, y) + 23;
+
+		$("#right").val(right);
+		$("#bottom").val(bottom);
+	}
 }
 
 function getColorAsHex(color) {
 	return "#" + ("00000" + parseInt(color).toString(16)).substr(-6);
+}
+
+function roundToGrid(gridPos, mousePos) {
+	return gridPos + Math.floor((mousePos - gridPos) / 24) * 24;
 }
 
 // From https://stackoverflow.com/a/20452240/734170
