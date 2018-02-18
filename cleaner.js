@@ -21,6 +21,7 @@ $(function () {
 
 	$(".positions input").change(function () {
 		CLIPBOARD.findBackground();
+		CLIPBOARD.cleanIcon();
 	});
 
 	$(".commit-colors").click(function () {
@@ -326,6 +327,7 @@ function CLIPBOARD_CLASS(rawCanvas, finalCanvas) {
 		var best;
 		for (let grid of gridList) {
 			if (best=this.isGrid(pixels, grid.color)) {
+				setGridPosition(best);
 				break;
 			}
 		}
@@ -414,11 +416,6 @@ function CLIPBOARD_CLASS(rawCanvas, finalCanvas) {
 			result.top = top;
 		}
 
-		$("#left").val(result.left);
-		$("#top").val(result.top);
-		$("#right").val(result.right);
-		$("#bottom").val(result.bottom);
-
 		return result;
 	}
 
@@ -454,8 +451,14 @@ function CLIPBOARD_CLASS(rawCanvas, finalCanvas) {
 		}
 		else {
 			rawCanvas.search()
-			if (!this.isGrid(rawCanvas.pixels, gridColor) && !$("#grid-color").data("manual")) {
+			var grid = this.isGrid(rawCanvas.pixels, gridColor);
+			if (!grid && !$("#grid-color").data("manual")) {
+				setGridPosition(grid);
 				gridColor = this.findGrid();
+			}
+			else {
+				// Only set if they're not already set...
+				setGridPosition(grid, true);
 			}
 		}
 
@@ -463,7 +466,7 @@ function CLIPBOARD_CLASS(rawCanvas, finalCanvas) {
 			console.warn("Grid color could not be found!!");
 			return;
 		}
-		
+
 		var left = parseInt($("#left").val());
 		var top = parseInt($("#top").val());
 		var right = parseInt($("#right").val());
@@ -670,7 +673,7 @@ function CLIPBOARD_CLASS(rawCanvas, finalCanvas) {
 		var left = parseInt($("#left").val());
 		var top = parseInt($("#top").val());
 
-		if (x >= left && y >= top) {
+		if (x >= left % 24 && y >= top % 24) {
 			var rectLeft, rectTop, rectRight, rectBottom;
 
 			if (selectingFirstSlot) {
@@ -723,7 +726,7 @@ function CLIPBOARD_CLASS(rawCanvas, finalCanvas) {
 		var bottom = roundToGrid(top, y) + 23;
 
 		$("#right").val(right);
-		$("#bottom").val(bottom);
+		$("#bottom").val(bottom).change();
 	}
 }
 
@@ -733,6 +736,24 @@ function getColorAsHex(color) {
 
 function roundToGrid(gridPos, mousePos) {
 	return gridPos + Math.floor((mousePos - gridPos) / 24) * 24;
+}
+
+function setGridPosition(pos, ifUnset) {
+	var $left = $("#left"), $top = $("#top");
+	var $right = $("#right"), $bottom = $("#bottom");
+
+	if (ifUnset) {
+		if (!$left.val()) $left.val(pos.left);
+		if (!$top.val()) $top.val(pos.top);
+		if (!$right.val()) $right.val(pos.right);
+		if (!$bottom.val()) $bottom.val(pos.bottom);
+	}
+	else {
+		$left.val(pos.left);
+		$top.val(pos.top);
+		$right.val(pos.right);
+		$bottom.val(pos.bottom);
+	}
 }
 
 // From https://stackoverflow.com/a/20452240/734170
