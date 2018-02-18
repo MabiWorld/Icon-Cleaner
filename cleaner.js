@@ -229,6 +229,12 @@ function CLIPBOARD_CLASS(rawCanvas, finalCanvas) {
 					var source = URLObj.createObjectURL(blob);
 					rawCanvas.create(source);
 
+					// Blank the position information.
+					$("#left").val("");
+					$("#top").val("");
+					$("#right").val("");
+					$("#bottom").val("");
+
 					setTimeout(this.cleanIcon.bind(this), 100);
 				}
 			}
