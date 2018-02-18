@@ -57,16 +57,11 @@ PUBLIC(CANVAS, "crop", function (source) {
 	this.redraw();
 });
 
-PUBLIC(CANVAS, "redraw", function () {
+PUBLIC(CANVAS, "redraw", function (left, top, right, bottom) {
 	if (this.image) {
 		this.context.drawImage(this.image, 0, 0);
 	}
 	else if (this.cropSource) {
-		var left = parseInt($("#left").val());
-		var top = parseInt($("#top").val());
-		var right = parseInt($("#right").val());
-		var bottom = parseInt($("#bottom").val());
-
 		if (isNaN(left) || isNaN(top)
 		|| isNaN(right) || isNaN(bottom)) {
 			this.canvas.width = this.initialWidth;
@@ -254,7 +249,9 @@ PUBLIC(CANVAS, "profileRects", function (rects) {
 	return data;
 });
 
-PUBLIC(CANVAS, "hideRectsIf", function (rects, erase) {
+PUBLIC(CANVAS, "hideRectsIf", function (rects, erase, unless) {
+	// Hide pixels in rects if they're neat erase, unless
+	// they're next to out-of-rect pixels w/ a given tolerance.
 	var hex = getColorAsHex(erase);
 
 	for (var y = 0; y < this.canvas.height; y += 24) {
@@ -287,4 +284,13 @@ PUBLIC(CANVAS, "getPixel", function (x, y) {
 
 PUBLIC(CANVAS, "isPixel", function (x, y, pixel, tolerance) {
 	return COLORBIN.isPixel(this.getPixel(x, y), pixel, tolerance);
+});
+
+PUBLIC(CANVAS, "drawLine", function (x1, y1, x2, y2, color, weight) {
+	this.context.strokeStyle = color || "#000";
+	this.context.beginPath();
+	this.context.moveTo(x1, y1);
+	this.context.lineTo(x2, y2);
+	this.context.lineWidth = weight || 1;
+	this.context.stroke();
 });
