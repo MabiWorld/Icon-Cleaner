@@ -20,14 +20,35 @@
 <body>
 	<h1>Inventory Icon Cleaner</h1>
 	<div class="canvases block">
-		<table><tr valign="middle">
-			<td><canvas id="cleaner" width="150" height="150"></canvas></td>
-			<td class="arrow">→</td>
-			<td><canvas id="cleaned" width="150" height="150"></canvas></td>
-		</tr></table>
+		<table>
+			<tr valign="middle">
+				<td><canvas id="cleaner" width="150" height="150"></canvas></td>
+				<td class="arrow">→</td>
+				<td><canvas id="cleaned" width="150" height="150"></canvas></td>
+				<td class="arrow">→</td>
+				<td><canvas id="editor" width="150" height="150"></canvas></td>
+				<td class="editor-buttons">
+					<span id="editor-buttons">
+						<span class="editor-button pencil" title="Restore pixel"></span>
+						<span class="editor-button eraser" title="Hide pixel"></span>
+						<span class="editor-button refresh" title="Reset"></span>
+						<span class="editor-space"></span>
+						<span class="editor-button upload" title="Upload icon"></span>
+					</span>
+				</td>
+			</tr>
+			<tr valign="middle">
+				<td><span class="slot-selector button">Select icon's slots</span></td>
+				<td class="blank"> </td>
+				<td><span class="show-corrections">Make corrections...</span></td>
+				<td class="blank"> </td>
+				<td colspan="2">
+					<span>Name:</span>
+					<span class="upload-name"><input id="upload-name" /></span>
+				</td>
+			</tr>
+		</table>
 	</div>
-	<div class="slot-selector button">Select icon's slots</div>
-	<div class="show-corrections">Make corrections...</div>
 	<div style="display: none" class="corrections block">
 		<div class="grid-adjuster">
 			<span id="grid-adjuster" class="button">Adjust grid</span>

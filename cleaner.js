@@ -1,6 +1,6 @@
 // Adapted from https://stackoverflow.com/a/18387322/734170
 $(function () {
-	var CLIPBOARD = new CLIPBOARD_CLASS("#cleaner", "#cleaned");
+	var CLIPBOARD = new CLIPBOARD_CLASS("#cleaner", "#cleaned", "#editor", "#editor-buttons");
 
 	$(".show-corrections").click(function () {
 		if ($(".corrections").toggle().is(":visible")) {
@@ -171,7 +171,19 @@ $(function () {
 	})
 	.mouseout(function () {
 		$("#color-selector").hide();
-	})
+	});
+
+	if (location.search) {
+		var params = location.search.substr(1).split("&");
+
+		for (let param of params) {
+			var splits = param.split("=");
+			
+			if (splits[0] == "name") {
+				$("#upload-name").val(splits.slice(1).join("="));
+			}
+		}
+	}
 });
 
 /**
@@ -180,10 +192,11 @@ $(function () {
  * @param {string} rawCanvas - selector for raw pasted image
  * @param {string} finalCanvas - selector for cleaned image
  */
-function CLIPBOARD_CLASS(rawCanvas, finalCanvas) {
+function CLIPBOARD_CLASS(rawCanvas, finalCanvas, editorCanvas, editorButtons) {
 	var _self = this;
-	var rawCanvas = this.rawCanvas = new CANVAS(rawCanvas);
-	var finalCanvas = this.finalCanvas = new CANVAS(finalCanvas);
+	rawCanvas = this.rawCanvas = new CANVAS(rawCanvas);
+	finalCanvas = this.finalCanvas = new CANVAS(finalCanvas);
+	editorCanvas = this.editorCanvas = new CANVAS(editorCanvas);
 
 	//handlers
 	var findingGrid = false;
@@ -199,9 +212,8 @@ function CLIPBOARD_CLASS(rawCanvas, finalCanvas) {
 		else if (selectingFirstSlot || selectingLastSlot) {
 			_self.drawSlotSelector(x, y);
 		}
-	});
-
-	$(rawCanvas.canvas).click(function (e) {
+	})
+	.click(function (e) {
 		var offset = $(this).offset();
 		var x = e.pageX - offset.left;
 		var y = e.pageY - offset.top;
@@ -215,6 +227,55 @@ function CLIPBOARD_CLASS(rawCanvas, finalCanvas) {
 		else if (selectingLastSlot) {
 			_self.selectLastSlot(x, y);
 		}
+	});
+
+	var editorHasData = false, editorTool = 0, toolInUse = false;
+	$(editorCanvas.canvas).mousemove(function (e) {
+		if (!editorHasData || !editorTool) return;
+
+		var offset = $(this).offset();
+		var x = e.pageX - offset.left;
+		var y = e.pageY - offset.top;
+
+		if (toolInUse) {
+			_self.selectEditorPixel(x, y);
+		}
+
+		_self.hoverEditorPixel(x, y);
+	})
+	.mousedown(function (e) {
+		if (!editorHasData || !editorTool) return;
+
+		var offset = $(this).offset();
+		var x = e.pageX - offset.left;
+		var y = e.pageY - offset.top;
+
+		toolInUse = true;
+		_self.selectEditorPixel(x, y);
+	})
+	.mouseup(function () {
+		toolInUse = false;
+	})
+	.mouseout(function () {
+		toolInUse = false;
+	});
+
+	$(editorButtons + " .pencil").click(function () {
+		editorTool = 1;
+
+		$(editorButtons + " .selected").removeClass("selected");
+		$(this).addClass("selected");
+	});
+
+	$(editorButtons + " .eraser").click(function () {
+		editorTool = 2;
+
+		$(editorButtons + " .selected").removeClass("selected");
+		$(this).addClass("selected");
+	});
+
+	$(editorButtons + " .refresh").click(function () {
+		_self.cleanIcon();
 	});
 
 	document.addEventListener('paste', function (e) { _self.paste_auto(e); }, false);
@@ -558,6 +619,8 @@ function CLIPBOARD_CLASS(rawCanvas, finalCanvas) {
 		finalCanvas.hideRectsIf(boxRects, boxColor);
 		finalCanvas.hideRectsIf(shadowRects, shadowColor);
 		finalCanvas.hideRectsIf(innerRect, innerColor);
+
+		setTimeout(this.loadInEditor.bind(this), 100);
 	}
 
 	this.profileRectsAndSave = function (selector, rects, totals) {
@@ -727,6 +790,79 @@ function CLIPBOARD_CLASS(rawCanvas, finalCanvas) {
 
 		$("#right").val(right);
 		$("#bottom").val(bottom).change();
+	}
+
+	/* EDITOR FUNCTIONS */
+	var editorImage = null;
+	this.loadInEditor = function () {
+		var width = finalCanvas.width();
+		var height = finalCanvas.height();
+		editorImage = finalCanvas.context.getImageData(0, 0, width, height)
+
+		editorCanvas.width(width * 4 + 2);
+		editorCanvas.height(height * 4 + 2);
+
+		editorHasData = true;
+		this.refreshEditor();
+	}
+
+	this.refreshEditor = function () {
+		if (!editorHasData) return;
+
+		selCtx = editorCanvas.context;
+		selCtx.putImageData(scaleImageData(selCtx, editorImage, 4), 1, 1);
+
+		var width = editorCanvas.width();
+		var height = editorCanvas.height();
+		editorCanvas.drawLine(0, 0, width, 0, "#fff");
+		editorCanvas.drawLine(0, 0, 0, height, "#fff");
+		editorCanvas.drawLine(width, 0, width, height, "#fff");
+		editorCanvas.drawLine(0, height, width, height, "#fff");
+	}
+
+	this.hoverEditorPixel = function (x, y) {
+		var left = Math.min(Math.max(0, Math.floor((x - 1) / 4) * 4), editorCanvas.width() - 6);
+		var top = Math.min(Math.max(0, Math.floor((y - 1) / 4) * 4), editorCanvas.height() - 6);
+		var right = left + 5;
+		var bottom = top + 5;
+
+		this.refreshEditor();
+		editorCanvas.drawLine(left, top, right, top, "#f00");
+		editorCanvas.drawLine(left, top, left, bottom, "#f00");
+		editorCanvas.drawLine(right, top, right, bottom, "#f00");
+		editorCanvas.drawLine(left, bottom, right, bottom, "#f00");
+	}
+
+	this.selectEditorPixel = function (x, y) {
+		x = Math.min(Math.max(0, Math.floor((x - 1) / 4)), finalCanvas.width() - 1);
+		y = Math.min(Math.max(0, Math.floor((y - 1) / 4)), finalCanvas.height() - 1);
+
+		var finalContext = finalCanvas.context;
+		var editorContext = editorCanvas.context;
+
+		var pixel = rawCanvas.context.getImageData(
+			x + parseInt($("#left").val()),
+			y + parseInt($("#top").val()),
+			1, 1);
+
+		console.log(pixel);
+
+		switch (editorTool) {
+			case 0: return;
+			case 1:
+				// Restore pixel.
+				pixel.data[3] = 255;
+				finalContext.putImageData(pixel, x, y);
+				break;
+			case 2:
+				// Hide pixel.
+				pixel.data[3] = 0;
+				finalContext.putImageData(pixel, x, y);
+				break;
+			//
+		}
+
+		this.loadInEditor();
 	}
 }
 

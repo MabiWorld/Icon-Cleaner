@@ -72,3 +72,68 @@ canvas {
 .color-preview {
 	text-align: center;
 }
+
+/* Editor */
+#editor {
+	cursor: none;
+}
+
+.editor-buttons {
+	width: 40px;
+	height: 100%;
+}
+
+.editor-buttons > span {
+	display: flex;
+	align-items: center;
+	flex-direction: column;
+
+	width: 100%;
+	height: 100%;
+	min-height: 100%;
+
+	background-color: #f9c43e;
+}
+
+.editor-button {
+	cursor: pointer;
+	flex-shrink: 0;
+
+	display: inline-block;
+	width: 32px;
+	height: 32px;
+
+	border: 2px solid #efd288;
+	border-color: #efd288 #aa7f11 #aa7f11 #efd288;
+
+	background-repeat: no-repeat;
+}
+
+.editor-button:active, .editor-button.selected {
+	border-color: #aa7f11 #efd288 #efd288 #aa7f11;
+}
+
+.editor-space {
+	flex: 2;
+
+	display: inline-block;
+	width: 100%;
+
+	background-color: #f9c43e;
+}
+
+.pencil {
+	background-image: url(img/pencil.png);
+}
+
+.eraser {
+	background-image: url(img/eraser.png);
+}
+
+.refresh {
+	background-image: url(img/refresh.png);
+}
+
+.upload {
+	background-image: url(img/upload.png);
+}
