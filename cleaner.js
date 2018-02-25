@@ -356,10 +356,13 @@ function CLIPBOARD_CLASS(rawCanvas, finalCanvas, editorCanvas, editorButtons) {
 								},
 							})
 						}
+						else {
+							setStatus("Test paste not a URL.", "error");
+						}
 					});
 				}
 				else {
-
+					setStatus("Unknown paste type: " + items[i].type, "error");
 				}
 			}
 			e.preventDefault();
