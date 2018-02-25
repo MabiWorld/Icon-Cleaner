@@ -11,8 +11,9 @@ $(function () {
 		}
 	});
 
-	$("#grid-adjuster").click(function () {
+	$("#grid-adjuster").click(function (e) {
 		CLIPBOARD.beginGridFinder();
+		e.stopPropagation();
 	});
 
 	$(".slot-selector").click(function () {
@@ -171,6 +172,25 @@ $(function () {
 	})
 	.mouseout(function () {
 		$("#color-selector").hide();
+	});
+
+	$(".interface-preview").mouseover(function () {
+		var $this = $(this);
+		var offset = $this.offset();
+
+		var img = $this.attr("class").replace("interface-preview", "").trim().replace(/-/g, "_");
+		var $img = $('<img src="img/interfaces/' + img + '.png"/>');
+
+		$("#interface-previewer").empty()
+		.append($img)
+		.show()
+		.css({
+			"left": offset.left,
+			"top": offset.top + $this.outerHeight(),
+		});
+	})
+	.mouseout(function () {
+		$("#interface-previewer").hide();
 	});
 
 	if (location.search) {
@@ -408,12 +428,14 @@ function CLIPBOARD_CLASS(rawCanvas, finalCanvas, editorCanvas, editorButtons) {
 		var hex = getColorAsHex(color);
 		var height = pixels.length, width = pixels[0].length;
 
+		var tol = parseInt($("#tolerance").val()) || 40;
+
 		// Profile the color along the verticals.
 		var cols = new Array(width);
 		for (let x = 0; x < width; ++x) {
 			let col = 0;
 			for (let y = 0; y < height; ++y) {
-				if (chromatism.difference(getColorAsHex(pixels[y][x]), hex) < 40) {
+				if (chromatism.difference(getColorAsHex(pixels[y][x]), hex) < tol) {
 					++col;
 				}
 			}
@@ -457,7 +479,7 @@ function CLIPBOARD_CLASS(rawCanvas, finalCanvas, editorCanvas, editorButtons) {
 		var x = result.left;
 		var top = 0, bottom = 0, bottomEnd = false;
 		for (let y = height - 1; y >= 0; --y) {
-			if (chromatism.difference(getColorAsHex(pixels[y][x]), hex) < 40) {
+			if (chromatism.difference(getColorAsHex(pixels[y][x]), hex) < tol) {
 				if (bottomEnd) {
 					++top;
 				}
@@ -522,12 +544,15 @@ function CLIPBOARD_CLASS(rawCanvas, finalCanvas, editorCanvas, editorButtons) {
 			rawCanvas.search()
 			var grid = this.isGrid(rawCanvas.pixels, gridColor);
 			if (!grid && !$("#grid-color").data("manual")) {
-				setGridPosition(grid);
 				gridColor = this.findGrid();
 			}
-			else {
+			else if (grid) {
 				// Only set if they're not already set...
 				setGridPosition(grid, true);
+			}
+			else {
+				console.warn("Unable to find manually set grid color. Resetting...");
+				gridColor = this.findGrid();
 			}
 		}
 
@@ -618,15 +643,17 @@ function CLIPBOARD_CLASS(rawCanvas, finalCanvas, editorCanvas, editorButtons) {
 			return;
 		}
 
+		var tol = parseInt($("#tolerance").val()) || 40;
+
 		// Draw the cropped base.
 		finalCanvas.crop(rawCanvas, left, top, right, bottom);
 
 		// Perform cleaning.
-		finalCanvas.hideRectsIf(gridRects, gridColor);
-		finalCanvas.hideRectsIf(cornerRects, cornerColor);
-		finalCanvas.hideRectsIf(boxRects, boxColor);
-		finalCanvas.hideRectsIf(shadowRects, shadowColor);
-		finalCanvas.hideRectsIf(innerRect, innerColor);
+		finalCanvas.hideRectsIf(gridRects, gridColor, tol);
+		finalCanvas.hideRectsIf(cornerRects, cornerColor, tol);
+		finalCanvas.hideRectsIf(boxRects, boxColor, tol);
+		finalCanvas.hideRectsIf(shadowRects, shadowColor, tol);
+		finalCanvas.hideRectsIf(innerRect, innerColor, tol);
 
 		setTimeout(this.loadInEditor.bind(this), 100);
 	}
@@ -678,8 +705,25 @@ function CLIPBOARD_CLASS(rawCanvas, finalCanvas, editorCanvas, editorButtons) {
 		}
 	}
 
+	var gridZoomer;
 	this.beginGridFinder = function () {
 		findingGrid = true;
+
+		var gridZoom = $("<canvas>")[0];
+		gridZoom.width = gridZoom.height = 24 * 4;
+
+		gridZoomer = gridZoom.getContext("2d");
+
+		var $relTo = $(rawCanvas.canvas);
+		var offset = $relTo.offset();
+
+		$("#color-selector").empty().show()
+			.css({
+				"left": offset.left,
+				"top": offset.top + $relTo.outerHeight(),
+			})
+			.append(gridZoom)
+			.append('<div id="color-under-cursor" class="color-preview"></div>');
 	}
 
 	this.drawGridFinder = function (x, y) {
@@ -691,13 +735,23 @@ function CLIPBOARD_CLASS(rawCanvas, finalCanvas, editorCanvas, editorButtons) {
 		var pixel = rawCanvas.getPixel(x, y);
 
 		// Vertical line
-		rawCanvas.drawLine(x, 0, x, rawCanvas.height(), "#f00");
+		rawCanvas.drawLine(x + 0.5, 0, x + 0.5, rawCanvas.height(), "#f00");
 
 		// Horizontal line
-		rawCanvas.drawLine(0, y, rawCanvas.width(), y, "#f00");
+		rawCanvas.drawLine(0, y + 0.5, rawCanvas.width(), y + 0.5, "#f00");
 
-		$("#color-under-cursor").text(getColorAsHex(pixel));
-		$("#grid-color").css("background-color", getColorAsHex(pixel));
+		// Copy to zoomer.
+		var image = rawCanvas.context.getImageData(x - 12, y - 12, 24, 24)
+		gridZoomer.putImageData(scaleImageData(gridZoomer, image, 4), 0, 0);
+
+		var hex = getColorAsHex(pixel);
+		$("#color-under-cursor")
+			.text(hex)
+			.css({
+				"background-color": hex,
+				"color": chromatism.contrastRatio(hex).hex,
+			});
+		$("#grid-color").css("background-color", hex);
 
 		$("#left").val(x);
 		$("#top").val(y);
@@ -720,6 +774,8 @@ function CLIPBOARD_CLASS(rawCanvas, finalCanvas, editorCanvas, editorButtons) {
 			"best": pixel,
 			"manual": true,
 		}).css("background-color", getColorAsHex(pixel));
+
+		$("#color-selector").empty().hide();
 	}
 
 	this.beginSlotSelector = function () {
@@ -761,10 +817,7 @@ function CLIPBOARD_CLASS(rawCanvas, finalCanvas, editorCanvas, editorButtons) {
 			}
 
 			// Draw bounding box.
-			rawCanvas.drawLine(rectLeft, rectTop, rectRight, rectTop, "#f00");
-			rawCanvas.drawLine(rectLeft, rectTop, rectLeft, rectBottom, "#f00");
-			rawCanvas.drawLine(rectRight, rectTop, rectRight, rectBottom, "#f00");
-			rawCanvas.drawLine(rectLeft, rectBottom, rectRight, rectBottom, "#f00");
+			rawCanvas.drawOutline(rectLeft, rectTop, rectRight, rectBottom, "#f00");
 		}
 	}
 
@@ -822,10 +875,7 @@ function CLIPBOARD_CLASS(rawCanvas, finalCanvas, editorCanvas, editorButtons) {
 
 		var width = editorCanvas.width();
 		var height = editorCanvas.height();
-		editorCanvas.drawLine(0, 0, width, 0, "#fff");
-		editorCanvas.drawLine(0, 0, 0, height, "#fff");
-		editorCanvas.drawLine(width, 0, width, height, "#fff");
-		editorCanvas.drawLine(0, height, width, height, "#fff");
+		editorCanvas.drawOutline(0, 0, width, height, "#fff");
 	}
 
 	this.hoverEditorPixel = function (x, y) {
@@ -835,10 +885,7 @@ function CLIPBOARD_CLASS(rawCanvas, finalCanvas, editorCanvas, editorButtons) {
 		var bottom = top + 5;
 
 		this.refreshEditor();
-		editorCanvas.drawLine(left, top, right, top, "#f00");
-		editorCanvas.drawLine(left, top, left, bottom, "#f00");
-		editorCanvas.drawLine(right, top, right, bottom, "#f00");
-		editorCanvas.drawLine(left, bottom, right, bottom, "#f00");
+		editorCanvas.drawOutline(left, top, right, bottom, "#f00");
 	}
 
 	this.selectEditorPixel = function (x, y) {
