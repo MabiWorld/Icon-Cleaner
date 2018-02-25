@@ -175,6 +175,10 @@ canvas {
 	color: lime;
 }
 
+.status .warning {
+	color: orange;
+}
+
 .status .error {
 	color: red;
 }

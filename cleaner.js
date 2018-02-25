@@ -1,3 +1,5 @@
+var IMAGE_PROXY_URL = "https://mabi.world/icon/image_proxy.php";
+
 // Adapted from https://stackoverflow.com/a/18387322/734170
 $(function () {
 	var CLIPBOARD = new CLIPBOARD_CLASS("#cleaner", "#cleaned", "#editor", "#editor-buttons");
@@ -316,24 +318,70 @@ function CLIPBOARD_CLASS(rawCanvas, finalCanvas, editorCanvas, editorButtons) {
 			
 			//access data directly
 			for (var i = 0; i < items.length; i++) {
-				if (items[i].type.indexOf("image") !== -1) {
+				if (items[i].type.indexOf("image") != -1) {
 					//image
-					var blob = items[i].getAsFile();
-					var URLObj = window.URL || window.webkitURL;
-					var source = URLObj.createObjectURL(blob);
-					rawCanvas.create(source);
+					this.pasteData(items[i].getAsFile());
+				}
+				else if (items[i].type.indexOf("text/plain") !== -1) {
+					items[i].getAsString(function (link) {
+						if (link.match(/^https?:\/\//)) {
+							setStatus('<img src="img/loading.gif">');
 
-					// Blank the position information.
-					$("#left").val("");
-					$("#top").val("");
-					$("#right").val("");
-					$("#bottom").val("");
+							$.ajax({
+								"url": IMAGE_PROXY_URL,
+								"method": "GET",
+								"data": { "url": link },
+								// https://stackoverflow.com/a/24719409/734170
+								"xhr": function() {
+									var xhr = jQuery.ajaxSettings.xhr();
 
-					setTimeout(this.cleanIcon.bind(this), 100);
+									var setRequestHeader = xhr.setRequestHeader;
+									xhr.setRequestHeader = function(name, value) {
+										if (name == 'X-Requested-With') return;
+
+										setRequestHeader.call(this, name, value);
+									}
+
+									xhr.responseType = "blob";
+
+									return xhr;
+								},
+								"success": function (data) {
+									setStatus("Fetched image from URL successfully", "success");
+									_self.pasteData(data);
+								},
+								"error": function (xhr, status, error) {
+									setStatus("Unable to fetch image from URL: " + link, "error");
+									console.error(status, error);
+								},
+							})
+						}
+					});
+				}
+				else {
+
 				}
 			}
 			e.preventDefault();
 		}
+	};
+
+	this.pasteData = function (blob) {
+		if (blob.type.indexOf("image/png") == -1) {
+			setStatus("Policy requires that images be of type PNG.", "warning")
+		}
+
+		var URLObj = window.URL || window.webkitURL;
+		var source = URLObj.createObjectURL(blob);
+		rawCanvas.create(source);
+
+		// Blank the position information.
+		$("#left").val("");
+		$("#top").val("");
+		$("#right").val("");
+		$("#bottom").val("");
+
+		setTimeout(this.cleanIcon.bind(this), 100);
 	};
 
 	this.findGrid = function () {
@@ -639,7 +687,7 @@ function CLIPBOARD_CLASS(rawCanvas, finalCanvas, editorCanvas, editorButtons) {
 		) {
 			this.findBackground();
 
-			if (!recursed) this.cleanIcon(true);
+			if (!recursed) return this.cleanIcon(true);
 
 			var show = false, error = "";
 
