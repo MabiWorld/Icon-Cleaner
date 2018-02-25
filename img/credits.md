@@ -19,3 +19,8 @@ Upload icon from - http://www.iconarchive.com/show/mono-general-4-icons-by-custo
 
 * Artist: Custom Icon Design
 * License: Free for non-commercial use.
+
+Loading dots - https://www.npmjs.com/package/loading-dots
+
+* Artist: tnhu
+* License: MIT
