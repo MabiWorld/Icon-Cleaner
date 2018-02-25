@@ -117,7 +117,7 @@ PUBLIC(CANVAS, "search", function (patterns, tolerance, left, top, width, height
 
 		row.push(color);
 	}
-	
+
 	this.pixels = pixels;
 
 	// Just wanted pixels.
@@ -259,7 +259,7 @@ PUBLIC(CANVAS, "profileRects", function (rects) {
 	return data;
 });
 
-PUBLIC(CANVAS, "hideRectsIf", function (rects, erase, unless) {
+PUBLIC(CANVAS, "hideRectsIf", function (rects, erase, tolerance, unless) {
 	// Hide pixels in rects if they're neat erase, unless
 	// they're next to out-of-rect pixels w/ a given tolerance.
 	var hex = getColorAsHex(erase);
@@ -275,7 +275,7 @@ PUBLIC(CANVAS, "hideRectsIf", function (rects, erase, unless) {
 				for (var p = 0; p < data.length; p += 4) {
 					var color = (data[p] << 16) + (data[p + 1] << 8) + data[p + 2];
 
-					if (chromatism.difference(getColorAsHex(color), hex) < 40) {
+					if (chromatism.difference(getColorAsHex(color), hex) < tolerance) {
 						data[p + 3] = 0;
 					}
 				}
@@ -303,4 +303,11 @@ PUBLIC(CANVAS, "drawLine", function (x1, y1, x2, y2, color, weight) {
 	this.context.lineTo(x2, y2);
 	this.context.lineWidth = weight || 1;
 	this.context.stroke();
+});
+
+PUBLIC(CANVAS, "drawOutline", function (left, top, right, bottom, color, weight) {
+	this.drawLine(left, top + 0.5, right, top + 0.5, color, weight);
+	this.drawLine(left + 0.5, top, left + 0.5, bottom, color, weight);
+	this.drawLine(right - 0.5, top, right - 0.5, bottom, color, weight);
+	this.drawLine(left, bottom - 0.5, right, bottom - 0.5, color, weight);
 });
