@@ -9,6 +9,7 @@ body {
 
 canvas {
 	border: 1px dashed gray;
+	user-select: none;
 }
 
 .block {
