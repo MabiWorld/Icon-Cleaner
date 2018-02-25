@@ -278,6 +278,10 @@ function CLIPBOARD_CLASS(rawCanvas, finalCanvas, editorCanvas, editorButtons) {
 		_self.cleanIcon();
 	});
 
+	$(editorButtons + " .upload").click(function () {
+		_self.uploadIcon();
+	});
+
 	document.addEventListener('paste', function (e) { _self.paste_auto(e); }, false);
 
 	//on paste
@@ -863,6 +867,28 @@ function CLIPBOARD_CLASS(rawCanvas, finalCanvas, editorCanvas, editorButtons) {
 		}
 
 		this.loadInEditor();
+	}
+
+	/* Uploader */
+	this.uploadIcon = function () {
+		if (!editorHasData || !LOGGED_IN) return;
+
+		var filename = $("#upload-name").val();
+
+		if (filename) {
+			if (!finalCanvas.canvas.toBlob){
+				var dataURL = finalCanvas.canvas.toDataURL("image/png");
+				var bytes = atob(dataURL.split(',')[1])
+				var arr = new Uint8Array(bytes.length);
+				for(var i=0; i<bytes.length; i++){
+				   arr[i]=bytes.charCodeAt(i);
+				}
+				uploadImage(filename, new Blob([arr], {type:'image/png'}));
+			}
+			else {
+				finalCanvas.canvas.toBlob(uploadImage.bind(null, filename));
+			}
+		}
 	}
 }
 

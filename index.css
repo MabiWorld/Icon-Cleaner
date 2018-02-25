@@ -137,3 +137,18 @@ canvas {
 .upload {
 	background-image: url(img/upload.png);
 }
+
+/* Login */
+.login-field > span {
+	display: inline-block;
+	max-width: 7em;
+	overflow: hidden;
+}
+
+.status .success {
+	color: lime;
+}
+
+.status .error {
+	color: red;
+}

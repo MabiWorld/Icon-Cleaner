@@ -13,6 +13,7 @@
 	<script type="text/javascript" src="lib/jenks.js"></script>
 
 	<script type="text/javascript" src="lib/define.js"></script>
+	<script type="text/javascript" src="mediawiki.js"></script>
 	<script type="text/javascript" src="colorbin.js"></script>
 	<script type="text/javascript" src="canvas.js"></script>
 	<script type="text/javascript" src="cleaner.js"></script>
@@ -43,8 +44,11 @@
 				<td><span class="show-corrections">Make corrections...</span></td>
 				<td class="blank"> </td>
 				<td colspan="2">
-					<span>Name:</span>
-					<span class="upload-name"><input id="upload-name" /></span>
+					<div class="logged-out" id="login-fields"></div>
+					<div class="logged-in" style="display: none;">
+						<span>Name:</span>
+						<span class="upload-name"><input id="upload-name" /></span>
+					</div>
 				</td>
 			</tr>
 		</table>
@@ -77,7 +81,8 @@
 		<div class="commit-colors button">Lock these colors</div>
 		<div style="display: none" id="color-selector"></div>
 	</div>
-	<p>Please use an opaque interface! It will probably not work otherwise.</p>
+	<div class="status"></div>
+	<p>Please use an opaque, high-contrast interface! It will probably not work otherwise.</p>
 	<div class="left block">
 		<ol>
 			<li>Use a screenshot tool that will copy a selection of the screen to the clipboard.</li>
