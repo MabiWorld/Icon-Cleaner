@@ -640,8 +640,41 @@ function CLIPBOARD_CLASS(rawCanvas, finalCanvas, editorCanvas, editorButtons) {
 			this.findBackground();
 
 			if (!recursed) this.cleanIcon(true);
+
+			var show = false, error = "";
+
+			if (!gridColor || isNaN(left) || isNaN(top)) {
+				show = true;
+				error = "<div>Please adjust the grid.</div>";
+			}
+			else if (isNaN(right) || isNaN(bottom)) {
+				error = "<div>Please select the icon slots.</div>";
+			}
+			else {
+				show = true;
+				
+				var colors = [];
+				if (!cornerColor) colors.push("Corner");
+				if (!boxColor)    colors.push("Box");
+				if (!shadowColor) colors.push("Shadow");
+				if (!innerColor)  colors.push("Inner");
+
+				if (colors.length == 1) {
+					error = "<div>Please manually set the " + colors[0] + " color.</div>";
+				}
+				else if (colors.length > 1) {
+					error = "<div>Please manually set the following colors: " + colors.join(", ") + ".</div>";
+				}
+			}
+
+			setStatus(error, "error");
+			if (show && $(".corrections").is(":hidden")) {
+				$(".show-corrections").click();
+			}
 			return;
 		}
+
+		setStatus();
 
 		var tol = parseInt($("#tolerance").val()) || 40;
 
