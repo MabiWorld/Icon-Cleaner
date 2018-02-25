@@ -73,6 +73,16 @@ canvas {
 	text-align: center;
 }
 
+/* Interfaces */
+.interface-preview {
+	display: inline-block;
+	text-decoration: underline;
+}
+
+#interface-previewer {
+	position: absolute;
+}
+
 /* Editor */
 #editor {
 	cursor: none;
@@ -155,6 +165,10 @@ canvas {
 	display: inline-block;
 	max-width: 7em;
 	overflow: hidden;
+}
+
+.login-field input {
+	max-width: 60%;
 }
 
 .status .success {
