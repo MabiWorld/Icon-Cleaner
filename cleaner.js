@@ -449,7 +449,7 @@ function CLIPBOARD_CLASS(rawCanvas, finalCanvas, editorCanvas, editorButtons) {
 
 					if (skip) continue;
 
-					grids[c].push(r);
+					grids[cc].push(r);
 					gridList.push(r);
 				}
 				else {
