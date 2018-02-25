@@ -900,8 +900,6 @@ function CLIPBOARD_CLASS(rawCanvas, finalCanvas, editorCanvas, editorButtons) {
 			y + parseInt($("#top").val()),
 			1, 1);
 
-		console.log(pixel);
-
 		switch (editorTool) {
 			case 0: return;
 			case 1:
