@@ -57,13 +57,14 @@
 	<div><div style="display: none" class="corrections block">
 		<div class="grid-adjuster">
 			<span id="grid-adjuster" class="button">Adjust grid</span>
-			<span id="color-under-cursor"></span>
 		</div>
 		<center><table class="positions">
 			<tr>
 				<td>Top-left:</td>
 				<td><input type="number" id="left" title="Left (x)"/></td>
 				<td><input type="number" id="top" title="Top (y)"/></td>
+				<td rowspan="2">Tolerance:</td>
+				<td rowspan="2"><input type="number" id="tolerance" title="Color tolerance" value="40"/></td>
 			</tr>
 			<tr>
 				<td>Bottom-right:</td>
@@ -84,6 +85,15 @@
 	</div></div>
 	<div class="status"></div>
 	<p>Please use an opaque, high-contrast interface! It will probably not work otherwise.</p>
+	<p>Suggestions:
+		<span class="interface-preview ivory">Ivory</span>,
+		<span class="interface-preview cherry-pink">Cherry Pink</span>,
+		<span class="interface-preview golden-apricot">Golden Apricot</span>,
+		<span class="interface-preview old-mustard">Old Mustard</span>,
+		<span class="interface-preview summer-sea">Summer Sea</span>,
+		<span class="interface-preview spring-herbs">Spring Herbs</span>,
+		<span class="interface-preview urban-man">Urban Man</span></p>
+	<div style="display: none" id="interface-previewer"></div>
 	<div class="left block">
 		<ol>
 			<li>Use a screenshot tool that will copy a selection of the screen to the clipboard.</li>
