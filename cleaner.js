@@ -278,6 +278,10 @@ function CLIPBOARD_CLASS(rawCanvas, finalCanvas, editorCanvas, editorButtons) {
 		_self.cleanIcon();
 	});
 
+	$(editorButtons + " .cycle").click(function () {
+		_self.cycleEditorBackground();
+	});
+
 	$(editorButtons + " .upload").click(function () {
 		_self.uploadIcon();
 	});
@@ -867,6 +871,14 @@ function CLIPBOARD_CLASS(rawCanvas, finalCanvas, editorCanvas, editorButtons) {
 		}
 
 		this.loadInEditor();
+	}
+
+	var colorCycle = ["transparent", "#fff", "#f00", "#0f0", "#00f", "#000"];
+	this.cycleEditorBackground = function () {
+		$bg = $(".editor-bg");
+		var cycle = (($bg.data("cycle") || 0) + 1) % colorCycle.length;
+		$bg.css("background-color", colorCycle[cycle]);
+		$bg.data("cycle", cycle);
 	}
 
 	/* Uploader */

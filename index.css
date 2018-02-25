@@ -122,6 +122,14 @@ canvas {
 	background-color: #f9c43e;
 }
 
+.editor-bg {
+	display: inline-block;
+}
+
+.editor-bg > canvas {
+	display: block;
+}
+
 .pencil {
 	background-image: url(img/pencil.png);
 }
@@ -132,6 +140,10 @@ canvas {
 
 .refresh {
 	background-image: url(img/refresh.png);
+}
+
+.cycle {
+	background-image: url(img/cycle.png);
 }
 
 .upload {
