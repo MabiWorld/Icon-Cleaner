@@ -202,7 +202,10 @@ $(function () {
 			var splits = param.split("=");
 			
 			if (splits[0] == "name") {
-				$("#upload-name").val(splits.slice(1).join("="));
+				var name = splits.slice(1).join("=");
+				$("#upload-name").val(name);
+
+				setStatus('<a href="https://wiki.mabinogiworld.com/index.php?title=Special:Upload&wpDestFile=' + name + '">Upload pre-cleaned icon.</a>');
 			}
 		}
 	}
@@ -317,14 +320,17 @@ function CLIPBOARD_CLASS(rawCanvas, finalCanvas, editorCanvas, editorButtons) {
 			if (!items) return;
 			
 			//access data directly
+			var found = false;
 			for (var i = 0; i < items.length; i++) {
 				if (items[i].type.indexOf("image") != -1) {
 					//image
+					found = true;
 					this.pasteData(items[i].getAsFile());
 				}
 				else if (items[i].type.indexOf("text/plain") !== -1) {
 					items[i].getAsString(function (link) {
 						if (link.match(/^https?:\/\//)) {
+							found = true;
 							setStatus('<img src="img/loading.gif">');
 
 							$.ajax({
@@ -357,12 +363,12 @@ function CLIPBOARD_CLASS(rawCanvas, finalCanvas, editorCanvas, editorButtons) {
 							})
 						}
 						else {
-							setStatus("Text paste not a URL.", "error");
+							if (!found) setStatus("Text paste not a URL.", "error");
 						}
 					});
 				}
 				else {
-					setStatus("Unknown paste type: " + items[i].type, "error");
+					if (!found) setStatus("Unknown paste type: " + items[i].type, "error");
 				}
 			}
 			e.preventDefault();
