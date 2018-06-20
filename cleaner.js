@@ -204,9 +204,7 @@ $(function () {
 			if (splits[0] == "name") {
 				var name = splits.slice(1).join("=");
 				$("#upload-name").val(name);
-
-				$("body > p:first-of-type").before(
-					'<div><a class="button" href="https://wiki.mabinogiworld.com/index.php?title=Special:Upload&wpDestFile=' + name + '">Upload pre-cleaned icon.</a></div>');
+				$("#upload-link").attr("href", "https://wiki.mabinogiworld.com/index.php?title=Special:Upload&wpDestFile=" + name);
 			}
 		}
 	}
