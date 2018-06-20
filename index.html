@@ -14,16 +14,13 @@
 
 	<script type="text/javascript" src="lib/define.js"></script>
 	<script type="text/javascript" src="mediawiki.js"></script>
-	<script type="text/javascript">
-		var LOGGED_IN = false;
-	</script>
 	<script type="text/javascript" src="colorbin.js"></script>
 	<script type="text/javascript" src="canvas.js"></script>
 	<script type="text/javascript" src="cleaner.js"></script>
 </head>
 <body>
 	<div class="banner">
-		<div class="logged-out" style="display: none; overflow:hidden; height:113px;">
+		<div class="logged-out" style="display: block; overflow:hidden; height:113px;">
 			<div class="login-panel-header">Login</div>
 			<div id="login-fields">
 			</div>
@@ -37,7 +34,7 @@
 				<span>Currently editing: </span>
 				<span class="upload-name"><input id="upload-name"/></span>
 			</div>
-			<div class="logged-out canvas-panel-header" style="display: none; float: none; width: auto;">
+			<div class="logged-out canvas-panel-header" style="display: block; float: none; width: auto;">
 				<span>Please login to be able to upload this to the Wiki.</span>
 			</div>
 			<table align="center">
