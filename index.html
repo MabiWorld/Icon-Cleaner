@@ -19,8 +19,12 @@
 	<script type="text/javascript" src="cleaner.js"></script>
 </head>
 <body>
-	<h1>Inventory Icon Cleaner</h1>
+	<div class="banner">
+		<span class="banner-text">Inventory Icon Cleaner</span><br />
+		<span class="banner-subtext">Already have a clean inventory icon? <a href="#">Click here to upload it manually.</a></span>
+	</div>
 	<div><div class="canvases block">
+		<div class="canvas-panel-header">Currently editing ?.png</div>
 		<table>
 			<tr valign="middle">
 				<td><canvas id="cleaner" width="150" height="150"></canvas></td>
@@ -84,23 +88,26 @@
 		<div style="display: none" id="color-selector"></div>
 	</div></div>
 	<div class="status"></div>
-	<p>Please use an opaque, high-contrast interface! It will probably not work otherwise.</p>
-	<p>Suggestions:
-		<span class="interface-preview ivory">Ivory</span>,
-		<span class="interface-preview cherry-pink">Cherry Pink</span>,
-		<span class="interface-preview golden-apricot">Golden Apricot</span>,
-		<span class="interface-preview old-mustard">Old Mustard</span>,
-		<span class="interface-preview summer-sea">Summer Sea</span>,
-		<span class="interface-preview spring-herbs">Spring Herbs</span>,
-		<span class="interface-preview urban-man">Urban Man</span></p>
-	<div style="display: none" id="interface-previewer"></div>
-	<div class="left block">
-		<ol>
-			<li>Use a screenshot tool that will copy a selection of the screen to the clipboard.</li>
-			<li>Take a screenshot of the icon. It doesn't have to be carefully taken, make sure the whole icon is there!</li>
-			<li>Paste the screenshot into this page with Ctrl+V</li>
-			<li>Select the relevant inventory slots or make adjustments if needed.</li>
-		</ol>
+	<div class="info-panel">
+		<div class="info-panel-header">How to use the Inventory Icon Cleaner</div>
+		<p>Please use an opaque, high-contrast interface! It will probably not work otherwise.</p>
+		<p>Suggestions:
+			<span class="interface-preview ivory">Ivory</span>,
+			<span class="interface-preview cherry-pink">Cherry Pink</span>,
+			<span class="interface-preview golden-apricot">Golden Apricot</span>,
+			<span class="interface-preview old-mustard">Old Mustard</span>,
+			<span class="interface-preview summer-sea">Summer Sea</span>,
+			<span class="interface-preview spring-herbs">Spring Herbs</span>,
+			<span class="interface-preview urban-man">Urban Man</span></p>
+		<div style="display: none" id="interface-previewer"></div>
+		<div class="left block">
+			<ol>
+				<li>Use a screenshot tool that will copy a selection of the screen to the clipboard.</li>
+				<li>Take a screenshot of the icon. It doesn't have to be carefully taken, make sure the whole icon is there!</li>
+				<li>Paste the screenshot into this page with Ctrl+V</li>
+				<li>Select the relevant inventory slots or make adjustments if needed.</li>
+			</ol>
+		</div>
 	</div>
 </body>
 </html>
