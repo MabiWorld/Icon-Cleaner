@@ -1,12 +1,100 @@
+:root {
+	--canvas-bg-color:#FFFFFF;
+}
+
 html, body {
 	width: 100%;
 	height: 100%;
+	font-family: sans-serif;
+	margin: 0px;
+	background-color: #EEEEEE;
+	color: #000000;
 }
 
 body {
 	text-align: center;
 }
-
+.banner {
+	background-color: #F6F6F6;
+	background-image: url(img/banner/mwiki_logo.png);
+	background-repeat: no-repeat;
+	background-position: 20px 0px;
+	display: block;
+	height: 126px;
+	text-align:left;
+	padding-left: 200px;
+	border-bottom: 1px solid #CCCCCC;
+	margin-bottom:40px;
+}
+.banner-text {
+	padding-top: 40px;
+	font-size: 22px;
+	font-weight: bold;
+	display: block;
+}
+.banner-subtext {
+	padding-top: 12px;
+	font-size: 14px;
+	font-weight: normal;
+	display: block;
+}
+.canvases {
+	border: 1px solid #3366DD;
+	background-color: #FFFFFF;
+	width:100%;
+}
+.corrections {
+	border: 1px solid #3366DD;
+	margin: 8px;
+	margin-top: 12px;
+	margin-left: 0px;
+	margin-right: 0px;
+	width: 100%;
+	padding-bottom: 8px;
+	background-color: #FFFFFF;
+}
+.info-panel-header {
+	background-color: #3366DD;
+	color: #FFFFFF;
+	border-bottom: 1px solid #3366DD;
+	min-height:20px;
+	line-height: 20px;
+	font-size: 16px;
+	padding: 4px;
+	text-align: center;
+}
+.canvas-panel-header {
+	background-color: #3366DD !important;
+	color: #FFFFFF !important;
+	border: 0px solid !important;
+	border-bottom: 1px solid #3366DD !important;
+	min-height:20px !important;
+	line-height: 20px !important;
+	font-size: 16px !important;
+	padding: 4px !important;
+	text-align: center !important;
+}
+.login-panel-header {
+	background-color: #3366DD;
+	color: #FFFFFF;
+	border-bottom: 1px solid #3366DD;
+	height:12px;
+	line-height: 12px;
+	font-size: 16px;
+	padding: 4px;
+	margin-bottom: 4px;
+	text-align: center;
+}
+.info-panel {
+	border: 1px solid #3366DD;
+	background-color: #FFFFFF;	
+	font-size: 14px;
+	width: 100%;
+	margin: auto;
+}
+#grid-color {
+	background-color: #FFFFFF;
+}
 canvas {
 	border: 1px dashed gray;
 	user-select: none;
@@ -22,9 +110,27 @@ canvas {
 
 .show-corrections, .button {
 	cursor: pointer;
-	text-decoration: underline;
+	background-color:#3366DD;
+	border:2px solid #4775E2;
+	border-radius: 8px;
+	color:#FFFFFF;
+	font-size: 13px;
+	padding: 4px;
+	min-width: 100px;
+	display: inline-block;
 }
-
+.show-corrections:hover, .button:hover {
+	background-color:#2951AD;
+	border:2px solid #6389E3;
+}
+.show-corrections:active, .button:active {
+	background-color:#2951AD;
+	border:2px solid #6389E3;
+	padding-left: 5px;
+	padding-top: 5px;
+	padding-bottom: 3px;
+	padding-right: 3px;
+}
 .positions input {
 	width: 3em;
 }
@@ -32,6 +138,9 @@ canvas {
 .colors {
 	display: flex;
 	flex-wrap: wrap;
+	align-items: center;
+	justify-content: center;
+	margin: 8px;
 }
 
 .color {
@@ -92,36 +201,35 @@ canvas {
 .editor-buttons {
 	width: 40px;
 	height: 100%;
+	position: relative;
+	left: 10px;
+	top: 0px;
 }
 
 .editor-buttons > span {
 	display: flex;
 	align-items: center;
 	flex-direction: column;
-
 	width: 100%;
 	height: 100%;
 	min-height: 100%;
 
-	background-color: #f9c43e;
+	background-color: #6699FF;
 }
 
 .editor-button {
 	cursor: pointer;
 	flex-shrink: 0;
-
 	display: inline-block;
 	width: 32px;
 	height: 32px;
-
 	border: 2px solid #efd288;
-	border-color: #efd288 #aa7f11 #aa7f11 #efd288;
-
+	border-color: #88AAFF #5471B9 #5471B9 #88AAFF;
 	background-repeat: no-repeat;
 }
 
 .editor-button:active, .editor-button.selected {
-	border-color: #aa7f11 #efd288 #efd288 #aa7f11;
+	border-color: #5471B9 #88AAFF #88AAFF #5471B9;
 }
 
 .editor-space {
@@ -162,16 +270,51 @@ canvas {
 }
 
 /* Login */
+.logged-out {
+	border: 1px solid #CCCCCC;
+	padding: 0px;	
+	background-color: #FFFFFF;	
+	width: 300px;
+	margin-left: auto;
+	margin-right: auto;
+	margin-bottom: 16px;
+	padding-bottom: 12px;
+	float:right;
+	font-size: 14px;
+}
+.login-field {
+	display: block;
+	height: 24px;
+}
 .login-field > span {
 	display: inline-block;
-	max-width: 7em;
+	max-width: 12em;
 	overflow: hidden;
+	padding-left: 8px;
 }
 
-.login-field input {
-	max-width: 60%;
+.login-field input[type="string"] {
+	width: 200px;
+	padding-left: 0px;
+	padding-right: 0px;
+	position: absolute;
+	right: 10px;
+	border: 1px solid #CCCCCC;
 }
-
+.login-field input[type="password"] {
+	width: 200px;
+	padding-left: 0px;
+	padding-right: 0px;
+	position: absolute;
+	right: 10px;
+	border: 1px solid #CCCCCC;
+}
+#login-fields .button {
+	margin-left: 8px;
+}
+.status {
+	margin: 12px;
+}
 .status .success {
 	color: lime;
 }
@@ -182,4 +325,11 @@ canvas {
 
 .status .error {
 	color: red;
+}
+.grid-adjuster {
+}
+
+.positions {	
+	margin-top: 8px;
+	margin-bottom: 4px;
 }
