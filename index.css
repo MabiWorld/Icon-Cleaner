@@ -57,7 +57,7 @@ body {
 	background-color: #3366DD;
 	color: #FFFFFF;
 	border-bottom: 1px solid #3366DD;
-	height:20px;
+	min-height:20px;
 	line-height: 20px;
 	font-size: 16px;
 	padding: 4px;
@@ -68,7 +68,7 @@ body {
 	color: #FFFFFF !important;
 	border: 0px solid !important;
 	border-bottom: 1px solid #3366DD !important;
-	height:20px !important;
+	min-height:20px !important;
 	line-height: 20px !important;
 	font-size: 16px !important;
 	padding: 4px !important;
