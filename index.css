@@ -14,35 +14,47 @@ html, body {
 body {
 	text-align: center;
 }
+
+/* Banner */
 .banner {
 	background-color: #F6F6F6;
 	background-image: url(img/banner/mwiki_logo.png);
 	background-repeat: no-repeat;
 	background-position: 20px 0px;
 	display: block;
-	height: 126px;
 	text-align:left;
 	padding-left: 200px;
 	border-bottom: 1px solid #CCCCCC;
 	margin-bottom:40px;
 }
+
 .banner-text {
 	padding-top: 40px;
 	font-size: 22px;
 	font-weight: bold;
 	display: block;
 }
+
 .banner-subtext {
 	padding-top: 12px;
 	font-size: 14px;
 	font-weight: normal;
 	display: block;
+	margin-bottom:12px;
 }
+
+.spacer {
+	clear: both;
+}
+
+/* App */
 .canvases {
 	border: 1px solid #3366DD;
 	background-color: #FFFFFF;
 	width:100%;
+	padding-bottom: 8px;
 }
+
 .corrections {
 	border: 1px solid #3366DD;
 	margin: 8px;
@@ -53,7 +65,8 @@ body {
 	padding-bottom: 8px;
 	background-color: #FFFFFF;
 }
-.info-panel-header {
+
+.panel-header {
 	background-color: #3366DD;
 	color: #FFFFFF;
 	border-bottom: 1px solid #3366DD;
@@ -63,28 +76,21 @@ body {
 	padding: 4px;
 	text-align: center;
 }
-.canvas-panel-header {
-	background-color: #3366DD !important;
-	color: #FFFFFF !important;
-	border: 0px solid !important;
-	border-bottom: 1px solid #3366DD !important;
-	min-height:20px !important;
-	line-height: 20px !important;
-	font-size: 16px !important;
-	padding: 4px !important;
-	text-align: center !important;
+
+.panel-header a {
+	color: white;
 }
+
+.panel-header a:visited {
+	color: lightgray;
+}
+
 .login-panel-header {
-	background-color: #3366DD;
-	color: #FFFFFF;
-	border-bottom: 1px solid #3366DD;
-	height:12px;
-	line-height: 12px;
-	font-size: 16px;
-	padding: 4px;
+	min-height: 12px !important;
+	line-height: 12px !important;
 	margin-bottom: 4px;
-	text-align: center;
 }
+
 .info-panel {
 	border: 1px solid #3366DD;
 	background-color: #FFFFFF;	
@@ -92,6 +98,7 @@ body {
 	width: 100%;
 	margin: auto;
 }
+
 #grid-color {
 	background-color: #FFFFFF;
 }
@@ -270,21 +277,23 @@ canvas {
 }
 
 /* Login */
-.logged-out {
+.login-panel {
 	border: 1px solid #CCCCCC;
 	padding: 0px;	
 	background-color: #FFFFFF;	
 	width: 300px;
-	margin-left: auto;
-	margin-right: auto;
-	margin-bottom: 16px;
 	padding-bottom: 12px;
 	float:right;
 	font-size: 14px;
+
+	overflow:hidden;
+	display: inline-block;
 }
+
 .login-field {
 	display: block;
-	height: 24px;
+	min-height: 24px;
+	position: relative;
 }
 .login-field > span {
 	display: inline-block;
@@ -301,6 +310,7 @@ canvas {
 	right: 10px;
 	border: 1px solid #CCCCCC;
 }
+
 .login-field input[type="password"] {
 	width: 200px;
 	padding-left: 0px;
@@ -309,12 +319,17 @@ canvas {
 	right: 10px;
 	border: 1px solid #CCCCCC;
 }
+
 #login-fields .button {
 	margin-left: 8px;
+	width: 274px;
+	text-align: center;
 }
+
 .status {
 	margin: 12px;
 }
+
 .status .success {
 	color: lime;
 }
