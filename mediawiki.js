@@ -53,6 +53,8 @@ function checkLoggedIn() {
 							}
 						}
 
+						$(".login-panel").show();
+
 						$("<div>").addClass("button").text("Login")
 						.click(login(data.query.tokens.logintoken))
 						.appendTo($fields);
