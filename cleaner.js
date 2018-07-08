@@ -1,4 +1,5 @@
 var IMAGE_PROXY_URL = "https://mabi.world/icon/image_proxy.php";
+var ZOOM_LEVEL = 4;
 
 // Adapted from https://stackoverflow.com/a/18387322/734170
 $(function () {
@@ -41,8 +42,8 @@ $(function () {
 		cleanCanvas.redraw();
 
 		var selCanvas, $selCanvas = $("<canvas>").attr({
-			"width": cleanCanvas.width() * 4,
-			"height": cleanCanvas.height() * 4,
+			"width": cleanCanvas.width() * ZOOM_LEVEL,
+			"height": cleanCanvas.height() * ZOOM_LEVEL,
 		}).click(function (e) {
 			var offset = $(this).offset();
 			var x = e.pageX - offset.left;
@@ -83,7 +84,28 @@ $(function () {
 		var image = cleanCanvas.context.getImageData(0, 0, cleanCanvas.width(), cleanCanvas.height())
 
 		selCtx = selCanvas.context;
-		selCtx.putImageData(scaleImageData(selCtx, image, 4), 0, 0);
+		selCtx.putImageData(scaleImageData(selCtx, image, ZOOM_LEVEL), 0, 0);
+
+		// Add zoom level selector.
+		var $zoomSel = $("<div>").addClass("zoom-selector");
+		$("<button>").addClass("left")
+			.text("\u2190")
+			.appendTo($zoomSel)
+			.click(function (e) {
+				ZOOM_LEVEL = Math.max(0, ZOOM_LEVEL - 1)
+				makeSelector($sel.empty(), $elem);
+				e.stopPropagation();
+			});
+		$("<span>").text(ZOOM_LEVEL).appendTo($zoomSel);
+		$("<button>").addClass("right")
+			.text("\u2192")
+			.appendTo($zoomSel)
+			.click(function (e) {
+				ZOOM_LEVEL = Math.min(10, ZOOM_LEVEL + 1)
+				makeSelector($sel.empty(), $elem);
+				e.stopPropagation();
+			});
+		$zoomSel.appendTo($sel);
 
 		// Add hex code view.
 		var color = $elem.data("best");
@@ -101,53 +123,7 @@ $(function () {
 			return;
 		}
 
-		var selection = $this.data("selection");
-		if (selection) {
-			// Limited selection of other colours.
-			var $div = $("<div>").addClass("selections").appendTo($sel);
-			var $template = $("<span>").addClass("selection");
-			for (let c of selection) {
-				$template.clone()
-					.data({
-						"best": c,
-						"manual": true,
-					})
-					.css("background-color", getColorAsHex(c))
-					.click(function () {
-						var col = $(this).data("best");
-						$this.data("best", col)
-							.css("background-color", getColorAsHex(col));
-						
-						$sel.hide();
-						CLIPBOARD.cleanIcon();
-					})
-					.mouseover(function () {
-						$(".color-preview").text(
-							getColorAsHex($(this).data("best"))
-						);
-					})
-					.appendTo($div);
-			}
-
-			// Add hex code view.
-			var current = $this.data("best");
-			$("<div>").addClass("color-preview")
-				.text(current ? getColorAsHex(current) : "<none>")
-				.appendTo($sel);
-
-			// Add open general color select button.
-			$("<div>").addClass("button")
-				.text("Selector...")
-				.click(function (e) {
-					makeSelector($sel.empty(), $this);
-
-					e.stopPropagation();
-				})
-				.appendTo($sel);
-		}
-		else {
-			makeSelector($sel, $this);
-		}
+		makeSelector($sel, $this);
 
 		var offset = $this.offset();
 		$sel.css({
@@ -785,13 +761,6 @@ function CLIPBOARD_CLASS(rawCanvas, finalCanvas, editorCanvas, editorButtons) {
 		var $elem = $(selector);
 		$elem.data("best", bestColor);
 		$elem.css("background-color", getColorAsHex(bestColor));
-
-		if (others) {
-			$elem.data("selection", others);
-		}
-		else {
-			$elem.data("selection", false);
-		}
 	}
 
 	var gridZoomer;
@@ -1007,7 +976,7 @@ function CLIPBOARD_CLASS(rawCanvas, finalCanvas, editorCanvas, editorButtons) {
 		this.loadInEditor();
 	}
 
-	var colorCycle = ["transparent", "#fff", "#f00", "#0f0", "#00f", "#000"];
+	var colorCycle = ["transparent", "#f00", "#0f0", "#00f", "#fff", "#000"];
 	this.cycleEditorBackground = function () {
 		$bg = $(".editor-bg");
 		var cycle = (($bg.data("cycle") || 0) + 1) % colorCycle.length;

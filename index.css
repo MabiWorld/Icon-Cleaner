@@ -180,6 +180,7 @@ canvas {
 
 #color-selector {
 	position: absolute;
+	margin-bottom: 30px;
 
 	text-align: left;
 
@@ -187,6 +188,20 @@ canvas {
 }
 
 .color-preview {
+	text-align: center;
+}
+
+.zoom-selector {
+	display: flex;
+}
+
+.zoom-selector > button {
+	flex: 0 0;
+}
+
+.zoom-selector > span {
+	flex-grow: 1;
+
 	text-align: center;
 }
 
